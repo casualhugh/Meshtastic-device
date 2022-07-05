@@ -5,7 +5,7 @@
 
 #include "Thread.h"
 #include "ThreadController.h"
-#include "concurrency/InterruptableDelay.h"
+#include "InterruptableDelay.h"
 
 namespace concurrency
 {

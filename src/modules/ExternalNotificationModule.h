@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SinglePortModule.h"
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 #include "configuration.h"
 #include <Arduino.h>
 #include <functional>

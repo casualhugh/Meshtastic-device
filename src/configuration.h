@@ -23,16 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-
 #include <Arduino.h>
-
-#ifdef RV3028_RTC
-    #include "Melopero_RV3028.h"
-#endif
-#ifdef PCF8563_RTC
-    #include "pcf8563.h"
-#endif
-
 // -----------------------------------------------------------------------------
 // Version
 // -----------------------------------------------------------------------------
@@ -46,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef HW_VERSION
 #define HW_VERSION "1.0"
 #endif
+//#define NO_SCREEN
 
 // -----------------------------------------------------------------------------
 // Configuration
@@ -62,50 +54,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /// Convert a preprocessor name into a quoted string and if that string is empty use "unset"
 #define optstr(s) (xstr(s)[0] ? xstr(s) : "unset")
 
-#ifdef PORTDUINO
-
-#define NO_ESP32 // Don't use ESP32 libs (mainly bluetooth)
-
-#elif defined(NRF52_SERIES) // All of the NRF52 targets are configured using variant.h, so this section shouldn't need to be
-// board specific
-
-//
-// Standard definitions for NRF52 targets
-//
-
-#define NO_ESP32 // Don't use ESP32 libs (mainly bluetooth)
-
-// We bind to the GPS using variant.h instead for this platform (Serial1)
-
-#define LED_PIN PIN_LED1 // LED1 on nrf52840-DK
-
-// If the variant filed defines as standard button
-#ifdef PIN_BUTTON1
-#define BUTTON_PIN PIN_BUTTON1
-#endif
-
-#ifdef PIN_BUTTON2
-#define BUTTON_PIN_ALT PIN_BUTTON2
-#endif
-
-#ifdef PIN_BUTTON_TOUCH
-#define BUTTON_PIN_TOUCH PIN_BUTTON_TOUCH
-#endif
-
-#else
-
 //
 // Standard definitions for ESP32 targets
 //
 
 #define HAS_WIFI
-
+#define PIN_GPS_WAKE 27//forceon
 #define GPS_SERIAL_NUM 1
-#define GPS_RX_PIN 34
+#define GPS_RX_PIN 16
 #ifdef USE_JTAG
 #define GPS_TX_PIN -1
 #else
-#define GPS_TX_PIN 12
+#define GPS_TX_PIN 17
 #endif
 
 // -----------------------------------------------------------------------------
@@ -114,28 +74,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // NRF52 boards will define this in variant.h
 #ifndef RF95_SCK
-#define RF95_SCK 5
+#define RF95_SCK 18
 #define RF95_MISO 19
-#define RF95_MOSI 27
-#define RF95_NSS 18
+#define RF95_MOSI 23
+#define RF95_NSS 15
 #endif
 
-#endif
-
-#ifndef TTGO_T_ECHO
-#define GPS_UBLOX
-#endif
-
-//
-// Standard definitions for !ESP32 targets
-//
-
-#ifdef NO_ESP32
-// Nop definition for these attributes - not used on NRF52
-#define EXT_RAM_ATTR
-#define IRAM_ATTR
-#define RTC_DATA_ATTR
-#endif
 
 // -----------------------------------------------------------------------------
 // Feature toggles
@@ -160,7 +104,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // Flip the screen upside down by default as it makes more sense on T-BEAM
 // devices. Comment this out to not rotate screen 180 degrees.
-#define SCREEN_FLIP_VERTICALLY
+//#define SCREEN_FLIP_VERTICALLY
 
 // Define if screen should be mirrored left to right
 // #define SCREEN_MIRROR

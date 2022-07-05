@@ -1,7 +1,7 @@
 #pragma once
 #include "ProtobufModule.h"
 #include "mesh/generated/remote_hardware.pb.h"
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 
 /**
  * A module that provides easy low-level remote access to device hardware.

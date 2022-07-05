@@ -1,12 +1,13 @@
+#ifdef WANT_WIFI
 #include "mesh/http/WiFiAPClient.h"
 #include "NodeDB.h"
 #include "RTC.h"
-#include "concurrency/Periodic.h"
+#include "Periodic.h"
 #include "configuration.h"
 #include "main.h"
 #include "mesh/http/WebServer.h"
 #include "mesh/wifi/WiFiServerAPI.h"
-#include "mqtt/MQTT.h"
+
 #include "target_specific.h"
 #include <DNSServer.h>
 #include <ESPmDNS.h>
@@ -173,10 +174,6 @@ static void onNetworkConnected()
 
         APStartupComplete = true;
     }
-
-    // FIXME this is kinda yucky, instead we should just have an observable for 'wifireconnected'
-    if (mqtt)
-        mqtt->reconnect();
 }
 
 // Startup WiFi
@@ -382,3 +379,4 @@ uint8_t getWifiDisconnectReason()
 {
     return wifiDisconnectReason;
 }
+#endif

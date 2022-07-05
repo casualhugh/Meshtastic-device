@@ -6,15 +6,8 @@
 #include <assert.h>
 
 // If we have a serial GPS port it will not be null
-#ifdef GPS_SERIAL_NUM
 HardwareSerial _serial_gps_real(GPS_SERIAL_NUM);
 HardwareSerial *GPS::_serial_gps = &_serial_gps_real;
-#elif defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
-// Assume NRF52840
-HardwareSerial *GPS::_serial_gps = &Serial1;
-#else
-HardwareSerial *GPS::_serial_gps = NULL;
-#endif
 
 GPS *gps;
 
@@ -63,94 +56,9 @@ bool GPS::setupGPS()
 {
     if (_serial_gps && !didSerialInit) {
         didSerialInit = true;
-
-// ESP32 has a special set of parameters vs other arduino ports
-#if defined(GPS_RX_PIN) && !defined(NO_ESP32)
         _serial_gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-#else
-        _serial_gps->begin(GPS_BAUDRATE);
-#endif
-#ifndef NO_ESP32
         _serial_gps->setRxBufferSize(2048); // the default is 256
-#endif
-#ifdef TTGO_T_ECHO
-        // Switch to 9600 baud, then close and reopen port
-        _serial_gps->end();
-        delay(250);
-        _serial_gps->begin(4800);
-        delay(250);
-        _serial_gps->write("$PCAS01,1*1D\r\n");
-        delay(250);
-        _serial_gps->end();
-        delay(250);
-        _serial_gps->begin(9600);
-        delay(250);
-        // Initialize the L76K Chip, use GPS + GLONASS
-        _serial_gps->write("$PCAS04,5*1C\r\n");
-        delay(250);
-        // only ask for RMC and GGA
-        _serial_gps->write("$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0*02\r\n");
-        delay(250);
-        // Switch to Vehicle Mode, since SoftRF enables Aviation < 2g
-        _serial_gps->write("$PCAS11,3*1E\r\n");
-        delay(250);
-#endif
-#ifdef GPS_UBLOX
-        delay(250);
-        // Set the UART port to output NMEA only
-        byte _message_nmea[] = {0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xC0, 0x08, 0x00, 0x00,
-                                0x80, 0x25, 0x00, 0x00, 0x07, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x91, 0xAF};
-        _serial_gps->write(_message_nmea, sizeof(_message_nmea));
-        if (!getACK(0x06, 0x00)) {
-            DEBUG_MSG("WARNING: Unable to enable NMEA Mode.\n");
-            return true;
-        }  
 
-        // disable GGL
-        byte _message_GGL[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x01, 0x05, 0x3A};
-        _serial_gps->write(_message_GGL, sizeof(_message_GGL));
-        if (!getACK(0x06, 0x01)) {
-            DEBUG_MSG("WARNING: Unable to disable NMEA GGL.\n");
-            return true;
-        }
-
-        // disable GSA
-        byte _message_GSA[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x02, 0x01, 0x00, 0x01, 0x01, 0x01, 0x01, 0x06, 0x41};
-        _serial_gps->write(_message_GSA, sizeof(_message_GSA));
-        if (!getACK(0x06, 0x01)) {
-            DEBUG_MSG("WARNING: Unable to disable NMEA GSA.\n");
-            return true;
-        }
-
-        // disable GSV
-        byte _message_GSV[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x03, 0x01, 0x00, 0x01, 0x01, 0x01, 0x01, 0x07, 0x48};
-        _serial_gps->write(_message_GSV, sizeof(_message_GSV));
-        if (!getACK(0x06, 0x01)) {
-            DEBUG_MSG("WARNING: Unable to disable NMEA GSV.\n");
-            return true;
-        }
-
-        // disable VTG
-        byte _message_VTG[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x01, 0x00, 0x01, 0x01, 0x01, 0x01, 0x09, 0x56};
-        _serial_gps->write(_message_VTG, sizeof(_message_VTG));
-        if (!getACK(0x06, 0x01)) {
-            DEBUG_MSG("WARNING: Unable to disable NMEA VTG.\n");
-            return true;
-        }
-
-        // enable RMC
-        byte _message_RMC[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x04, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x09, 0x54};
-        _serial_gps->write(_message_RMC, sizeof(_message_RMC));
-        if (!getACK(0x06, 0x01)) {
-            DEBUG_MSG("WARNING: Unable to enable NMEA RMC.\n");
-            return true;
-        }
-
-        // enable GGA
-        byte _message_GGA[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x38};
-        _serial_gps->write(_message_GGA, sizeof(_message_GGA));
-        if (!getACK(0x06, 0x01)) DEBUG_MSG("WARNING: Unable to enable NMEA GGA.\n");
-#endif
     }
 
     return true;
@@ -206,17 +114,21 @@ bool GPS::hasFlow()
 
 void GPS::wake()
 {
-#ifdef PIN_GPS_WAKE
-    digitalWrite(PIN_GPS_WAKE, GPS_WAKE_ACTIVE);
-    pinMode(PIN_GPS_WAKE, OUTPUT);
-#endif
+    #ifdef PIN_GPS_WAKE
+        //digitalWrite(PIN_GPS_WAKE, GPS_WAKE_ACTIVE);
+        //pinMode(PIN_GPS_WAKE, OUTPUT);
+    #endif
+    delay(10);
+    //ss.println("$PMTK353,1,1,1,0,0*2A");
 }
 
 void GPS::sleep()
 {
 #ifdef PIN_GPS_WAKE
-    digitalWrite(PIN_GPS_WAKE, GPS_WAKE_ACTIVE ? 0 : 1);
-    pinMode(PIN_GPS_WAKE, OUTPUT);
+    //digitalWrite(PIN_GPS_WAKE, GPS_WAKE_ACTIVE ? 0 : 1);
+    //pinMode(PIN_GPS_WAKE, OUTPUT);
+    //ss.println("$PMTK161,0*28"); // Standby
+    //BACKUP ss.println("$PMTK225,4*2F"0;
 #endif
 }
 
@@ -325,14 +237,6 @@ int32_t GPS::runOnce()
         // if we have received valid NMEA claim we are connected
         setConnected();
     } else {
-#ifdef GPS_UBLOX        
-        // reset the GPS on next bootup
-        if(devicestate.did_gps_reset && (millis() > 60000) && !hasFlow()) {
-            DEBUG_MSG("GPS is not communicating, trying factory reset on next bootup.\n");
-            devicestate.did_gps_reset = false;
-            nodeDB.saveToDisk();
-        }
-#endif
     }
 
     // If we are overdue for an update, turn on the GPS and at least publish the current status
@@ -432,30 +336,17 @@ int GPS::prepareDeepSleep(void *unused)
     return 0;
 }
 
-#ifndef NO_GPS
 #include "NMEAGPS.h"
-#endif
 
 GPS *createGps()
 {
 
-#ifdef NO_GPS
-    return nullptr;
-#else
-    if (!config.position.gps_disabled) {
-#ifdef GPS_ALTITUDE_HAE
-        DEBUG_MSG("Using HAE altitude model\n");
-#else
-        DEBUG_MSG("Using MSL altitude model\n");
-#endif
-        if (GPS::_serial_gps) {
-            // Some boards might have only the TX line from the GPS connected, in that case, we can't configure it at all.  Just
-            // assume NMEA at 9600 baud.
-            GPS *new_gps = new NMEAGPS();
-            new_gps->setup();
-            return new_gps;
-        }
+    if (GPS::_serial_gps) {
+        // Some boards might have only the TX line from the GPS connected, in that case, we can't configure it at all.  Just
+        // assume NMEA at 9600 baud.
+        GPS *new_gps = new NMEAGPS();
+        new_gps->setup();
+        return new_gps;
     }
     return nullptr;
-#endif
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "ProtobufModule.h"
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 
 /**
  * Position module for sending/receiving positions into the mesh

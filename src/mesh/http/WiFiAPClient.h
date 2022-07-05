@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #pragma once
 
 #include "configuration.h"
@@ -21,3 +22,4 @@ void handleDNSResponse();
 bool isSoftAPForced();
 
 uint8_t getWifiDisconnectReason();
+#endif

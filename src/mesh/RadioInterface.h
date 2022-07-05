@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../concurrency/NotifiedWorkerThread.h"
+#include "NotifiedWorkerThread.h"
 #include "MemoryPool.h"
 #include "MeshTypes.h"
 #include "Observer.h"

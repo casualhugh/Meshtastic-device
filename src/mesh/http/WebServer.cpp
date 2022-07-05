@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #include "mesh/http/WebServer.h"
 #include "NodeDB.h"
 #include "graphics/Screen.h"
@@ -207,3 +208,4 @@ void initWebServer()
         DEBUG_MSG("Web Servers Failed! ;-( \n");
     }
 }
+#endif

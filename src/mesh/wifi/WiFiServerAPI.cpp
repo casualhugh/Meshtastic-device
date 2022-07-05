@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #include "WiFiServerAPI.h"
 #include "configuration.h"
 #include <Arduino.h>
@@ -81,3 +82,4 @@ int32_t WiFiServerPort::runOnce()
 
     return 100; // only check occasionally for incoming connections
 }
+#endif

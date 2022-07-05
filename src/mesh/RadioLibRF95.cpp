@@ -8,7 +8,7 @@
 #define SX127X_REG_TCXO 0x4B
 
 
-RadioLibRF95::RadioLibRF95(Module *mod) : SX1278(mod) {}
+RadioLibRF95::RadioLibRF95(Module *mod) : SX1276(mod) {}
 
 int16_t RadioLibRF95::begin(float freq, float bw, uint8_t sf, uint8_t cr, uint8_t syncWord, int8_t power,
                             uint16_t preambleLength, uint8_t gain)
@@ -73,7 +73,6 @@ bool RadioLibRF95::isReceiving()
 {
     // 0x0b == Look for header info valid, signal synchronized or signal detected
     uint8_t reg = readReg(RADIOLIB_SX127X_REG_MODEM_STAT);
-    // Serial.printf("reg %x\n", reg);
     return (reg & (RH_RF95_MODEM_STATUS_SIGNAL_DETECTED | RH_RF95_MODEM_STATUS_SIGNAL_SYNCHRONIZED |
                    RH_RF95_MODEM_STATUS_HEADER_INFO_VALID)) != 0;
 }

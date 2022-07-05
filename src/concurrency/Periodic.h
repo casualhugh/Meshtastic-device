@@ -1,6 +1,6 @@
 #pragma once
 
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 
 namespace concurrency
 {

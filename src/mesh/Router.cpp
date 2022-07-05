@@ -11,9 +11,7 @@ extern "C" {
 #include "mesh/compression/unishox2.h"
 }
 
-#if defined(HAS_WIFI) || defined(PORTDUINO)
-#include "mqtt/MQTT.h"
-#endif
+
 
 /**
  * Router todo
@@ -213,43 +211,11 @@ ErrorCode Router::send(MeshPacket *p)
     if (p->which_payloadVariant == MeshPacket_decoded_tag) {
         ChannelIndex chIndex = p->channel; // keep as a local because we are about to change it
 
-#if defined(HAS_WIFI) || defined(PORTDUINO)
-        // check if we should send decrypted packets to mqtt
-
-        // truth table:
-        /* mqtt_server  mqtt_encryption_enabled should_encrypt
-         *    not set                        0              1
-         *    not set                        1              1
-         *        set                        0              0
-         *        set                        1              1
-         *
-         * => so we only decrypt mqtt if they have a custom mqtt server AND mqtt_encryption_enabled is FALSE
-         */
-
-        bool shouldActuallyEncrypt = true;
-        if (*moduleConfig.mqtt.address && !moduleConfig.mqtt.encryption_enabled) {
-            shouldActuallyEncrypt = false;
-        }
-
-        DEBUG_MSG("Should encrypt MQTT?: %d\n", shouldActuallyEncrypt);
-
-        // the packet is currently in a decrypted state.  send it now if they want decrypted packets
-        if (mqtt && !shouldActuallyEncrypt)
-            mqtt->onSend(*p, chIndex);
-#endif
-
         auto encodeResult = perhapsEncode(p);
         if (encodeResult != Routing_Error_NONE) {
             abortSendAndNak(encodeResult, p);
             return encodeResult; // FIXME - this isn't a valid ErrorCode
         }
-
-#if defined(HAS_WIFI) || defined(PORTDUINO)
-        // the packet is now encrypted.
-        // check if we should send encrypted packets to mqtt
-        if (mqtt && shouldActuallyEncrypt)
-            mqtt->onSend(*p, chIndex);
-#endif
     }
 
     assert(iface); // This should have been detected already in sendLocal (or we just received a packet from outside)

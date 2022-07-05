@@ -1,5 +1,5 @@
 #include "configuration.h"
-#include "concurrency/InterruptableDelay.h"
+#include "InterruptableDelay.h"
 
 namespace concurrency
 {

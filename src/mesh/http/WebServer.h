@@ -1,7 +1,8 @@
+#ifdef WANT_WIFI
 #pragma once
 
 #include "PhoneAPI.h"
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 #include <Arduino.h>
 #include <functional>
 
@@ -20,3 +21,4 @@ class WebServerThread : private concurrency::OSThread
 };
 
 extern WebServerThread *webServerThread;
+#endif

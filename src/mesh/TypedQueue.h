@@ -3,7 +3,7 @@
 #include <cassert>
 #include <type_traits>
 
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 #include "freertosinc.h"
 
 #ifdef HAS_FREE_RTOS

@@ -12,9 +12,3 @@
 #define LORA_RESET 23
 #define LORA_DIO1 33 // Not really used
 #define LORA_DIO2 32 // Not really used
-
-// This board has different GPS pins than all other boards
-#undef GPS_RX_PIN
-#undef GPS_TX_PIN
-#define GPS_RX_PIN 12
-#define GPS_TX_PIN 15

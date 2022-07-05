@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SinglePortModule.h"
-#include "concurrency/OSThread.h"
+#include "OSThread.h"
 #include "mesh/generated/storeforward.pb.h"
 
 #include "configuration.h"

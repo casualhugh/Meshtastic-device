@@ -2,8 +2,8 @@
 #include "../mesh/generated/telemetry.pb.h"
 #include "NodeDB.h"
 #include "ProtobufModule.h"
-#include <OLEDDisplay.h>
-#include <OLEDDisplayUi.h>
+#include "OLEDDisplay.h"
+#include "OLEDDisplayUi.h"
 
 class DeviceTelemetryModule : private concurrency::OSThread, public ProtobufModule<Telemetry>
 {

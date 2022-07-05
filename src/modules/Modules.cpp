@@ -1,9 +1,5 @@
 #include "configuration.h"
 #include "input/InputBroker.h"
-#include "input/RotaryEncoderInterruptImpl1.h"
-#include "input/UpDownInterruptImpl1.h"
-#include "input/cardKbI2cImpl.h"
-#include "input/facesKbI2cImpl.h"
 #include "modules/AdminModule.h"
 #include "modules/CannedMessageModule.h"
 #include "modules/ExternalNotificationModule.h"
@@ -39,14 +35,6 @@ void setupModules()
 
     new RemoteHardwareModule();
     new ReplyModule();
-    rotaryEncoderInterruptImpl1 = new RotaryEncoderInterruptImpl1();
-    rotaryEncoderInterruptImpl1->init();
-    upDownInterruptImpl1 = new UpDownInterruptImpl1();
-    upDownInterruptImpl1->init();
-    cardKbI2cImpl = new CardKbI2cImpl();
-    cardKbI2cImpl->init();
-    facesKbI2cImpl = new FacesKbI2cImpl();
-    facesKbI2cImpl->init();
 #ifndef NO_SCREEN    
     cannedMessageModule = new CannedMessageModule();
 #endif

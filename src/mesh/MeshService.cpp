@@ -3,9 +3,13 @@
 #include <string>
 
 #include "GPS.h"
-//#include "MeshBluetoothService.h"
-#include "../concurrency/Periodic.h"
-#include "BluetoothCommon.h" // needed for updateBatteryLevel, FIXME, eventually when we pull mesh out into a lib we shouldn't be whacking bluetooth from here
+#include "Periodic.h"
+#ifdef WANT_WIFI
+    #include "MeshBluetoothService.h"
+
+
+    #include "BluetoothCommon.h" // needed for updateBatteryLevel, FIXME, eventually when we pull mesh out into a lib we shouldn't be whacking bluetooth from here
+#endif
 #include "MeshService.h"
 #include "NodeDB.h"
 #include "PowerFSM.h"
@@ -215,9 +219,9 @@ NodeInfo *MeshService::refreshMyNodeInfo()
 
     // For the time in the position field, only set that if we have a real GPS clock
     position.time = getValidTime(RTCQualityGPS);
-
-    updateBatteryLevel(powerStatus->getBatteryChargePercent());
-
+    #ifdef WANT_WIFI
+        updateBatteryLevel(powerStatus->getBatteryChargePercent());
+    #endif
     return node;
 }
 

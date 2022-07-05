@@ -46,25 +46,11 @@ bool RF95Interface::init()
 
     iface = lora = new RadioLibRF95(&module);
 
-#ifdef RF95_TCXO
-    pinMode(RF95_TCXO, OUTPUT);
-    digitalWrite(RF95_TCXO, 1);
-#endif
-
     /*
     #define RF95_TXEN (22) // If defined, this pin should be set high prior to transmit (controls an external analog switch)
     #define RF95_RXEN (23) // If defined, this pin should be set high prior to receive (controls an external analog switch)
     */
 
-#ifdef RF95_TXEN
-    pinMode(RF95_TXEN, OUTPUT);
-    digitalWrite(RF95_TXEN, 0);
-#endif
-
-#ifdef RF95_RXEN
-    pinMode(RF95_RXEN, OUTPUT);
-    digitalWrite(RF95_RXEN, 1);
-#endif
     setTransmitEnable(false);
 
     int res = lora->begin(getFreq(), bw, sf, cr, syncWord, power, currentLimit, preambleLength);

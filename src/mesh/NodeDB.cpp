@@ -18,15 +18,12 @@
 #include <pb_encode.h>
 
 #ifndef NO_ESP32
-#include "mesh/http/WiFiAPClient.h"
+#ifdef WANT_WIFI
+//#include "mesh/http/WiFiAPClient.h"
+#endif
 #include "modules/esp32/StoreForwardModule.h"
 #include <Preferences.h>
 #include <nvs_flash.h>
-#endif
-
-#ifdef NRF52_SERIES
-#include <bluefruit.h>
-#include <utility/bonding.h>
 #endif
 
 NodeDB nodeDB;
@@ -99,14 +96,6 @@ bool NodeDB::resetRadioConfig()
 #ifndef NO_ESP32
         // This will erase what's in NVS including ssl keys, persistant variables and ble pairing
         nvs_flash_erase();
-#endif
-#ifdef NRF52_SERIES
-        Bluefruit.begin();
-        DEBUG_MSG("Clearing bluetooth bonds!\n");
-        bond_print_list(BLE_GAP_ROLE_PERIPH);
-        bond_print_list(BLE_GAP_ROLE_CENTRAL);
-        Bluefruit.Periph.clearBonds();
-        Bluefruit.Central.clearBonds();
 #endif
         didFactoryReset = true;
     }
@@ -339,14 +328,6 @@ void NodeDB::loadFromDisk()
 #ifndef NO_ESP32
         // This will erase what's in NVS including ssl keys, persistant variables and ble pairing
         nvs_flash_erase();
-#endif
-#ifdef NRF52_SERIES
-        Bluefruit.begin();
-        DEBUG_MSG("Clearing bluetooth bonds!\n");
-        bond_print_list(BLE_GAP_ROLE_PERIPH);
-        bond_print_list(BLE_GAP_ROLE_CENTRAL);
-        Bluefruit.Periph.clearBonds();
-        Bluefruit.Central.clearBonds();
 #endif
         } else {
             DEBUG_MSG("Loaded saved devicestate version %d\n", devicestate.version);

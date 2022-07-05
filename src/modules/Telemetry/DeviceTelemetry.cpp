@@ -7,8 +7,8 @@
 #include "Router.h"
 #include "configuration.h"
 #include "main.h"
-#include <OLEDDisplay.h>
-#include <OLEDDisplayUi.h>
+#include "OLEDDisplay.h"
+#include "OLEDDisplayUi.h"
 
 int32_t DeviceTelemetryModule::runOnce()
 {

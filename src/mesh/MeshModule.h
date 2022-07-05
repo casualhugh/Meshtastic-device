@@ -5,8 +5,8 @@
 #include <vector>
 
 #ifndef NO_SCREEN
-#include <OLEDDisplay.h>
-#include <OLEDDisplayUi.h>
+#include "OLEDDisplay.h"
+#include "OLEDDisplayUi.h"
 #endif
 
 /** handleReceived return enumeration

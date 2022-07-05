@@ -7,9 +7,9 @@
 #include "mesh/generated/cannedmessages.pb.h"
 
 // TODO: reuse defined from Screen.cpp
-#define FONT_SMALL ArialMT_Plain_10
-#define FONT_MEDIUM ArialMT_Plain_16
-#define FONT_LARGE ArialMT_Plain_24
+#define FONT_SMALL 1
+#define FONT_MEDIUM 2
+#define FONT_LARGE 3
 
 // Remove Canned message screen if no action is taken for some milliseconds
 #define INACTIVATE_AFTER_MS 20000
@@ -245,19 +245,19 @@ void CannedMessageModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *st
     if (cannedMessageModule->runState == CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE) {
         display->setTextAlignment(TEXT_ALIGN_CENTER);
         display->setFont(FONT_MEDIUM);
-        display->drawString(display->getWidth() / 2 + x, 0 + y + 12, "Sending...");
+        display->drawString(x, y + display->getHeight() / 2, "Sending...");
     } else if (cannedMessageModule->runState == CANNED_MESSAGE_RUN_STATE_DISABLED) {
-        display->setTextAlignment(TEXT_ALIGN_LEFT);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
         display->setFont(FONT_SMALL);
-        display->drawString(10 + x, 0 + y + 16, "Canned Message\nModule disabled.");
+        display->drawString(x, y + display->getHeight() / 2, "Canned Message\nModule disabled.");
     } else {
         display->setTextAlignment(TEXT_ALIGN_LEFT);
         display->setFont(FONT_SMALL);
-        display->drawString(0 + x, 0 + y, cannedMessageModule->getPrevMessage());
+        display->drawString(x, y + display->getHeight() / 2 - 20, cannedMessageModule->getPrevMessage());
         display->setFont(FONT_MEDIUM);
-        display->drawString(0 + x, 0 + y + 8, cannedMessageModule->getCurrentMessage());
+        display->drawString(x, y + display->getHeight() / 2, cannedMessageModule->getCurrentMessage());
         display->setFont(FONT_SMALL);
-        display->drawString(0 + x, 0 + y + 24, cannedMessageModule->getNextMessage());
+        display->drawString(x, y + display->getHeight() / 2 + 20, cannedMessageModule->getNextMessage());
     }
 }
 

@@ -4,9 +4,9 @@
 /*!
   \class RFM95
 
-  \brief Derived class for %RFM95 modules. Overrides some methods from SX1278 due to different parameter ranges.
+  \brief Derived class for %RFM95 modules. Overrides some methods from SX1276 due to different parameter ranges.
 */
-class RadioLibRF95: public SX1278 {
+class RadioLibRF95: public SX1276 {
   public:
 
     // constructor

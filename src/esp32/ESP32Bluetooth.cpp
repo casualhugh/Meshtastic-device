@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #ifdef USE_NEW_ESP32_BLUETOOTH
 
 #include "configuration.h"
@@ -256,4 +257,5 @@ void disablePin() {
     doublepressed = millis();
 }
 
+#endif
 #endif

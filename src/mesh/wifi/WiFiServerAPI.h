@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #pragma once
 
 #include "StreamAPI.h"
@@ -56,3 +57,4 @@ class WiFiServerPort : public WiFiServer, private concurrency::OSThread
 };
 
 void initApiServer();
+#endif

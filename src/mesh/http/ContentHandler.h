@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #pragma once
 
 
@@ -38,3 +39,4 @@ class HttpAPI : public PhoneAPI
     /// Check the current underlying physical link to see if the client is currently connected
     virtual bool checkIsConnected() override { return true; } // FIXME, be smarter about this
 };
+#endif

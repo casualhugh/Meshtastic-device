@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../concurrency/OSThread.h"
+#include "OSThread.h"
 #include "RadioInterface.h"
 #include "MeshPacketQueue.h"
 

@@ -1,14 +1,11 @@
-#include "BluetoothSoftwareUpdate.h"
 #include "PowerFSM.h"
 #include "configuration.h"
 #include "esp_task_wdt.h"
 #include "main.h"
 
-#ifdef USE_NEW_ESP32_BLUETOOTH
 #include "ESP32Bluetooth.h"
+#ifdef WANT_WIFI
 #include "mesh/http/WiFiAPClient.h"
-#else
-#include "nimble/BluetoothUtil.h"
 #endif
 
 #include "sleep.h"
@@ -41,7 +38,7 @@ static void printBLEinfo() {
 } */
 #ifdef USE_NEW_ESP32_BLUETOOTH
 void setBluetoothEnable(bool on) {
-    
+    #ifdef WANT_WIFI
     if (!isWifiAvailable()) {
         if (!esp32Bluetooth) {
             esp32Bluetooth = new ESP32Bluetooth();
@@ -52,6 +49,7 @@ void setBluetoothEnable(bool on) {
             esp32Bluetooth->shutdown();
         }
     }
+    #endif
 }
 #endif
 
@@ -98,27 +96,6 @@ void esp32Setup()
     assert(res == ESP_OK);
 }
 
-#if 0
-// Turn off for now
-
-uint32_t axpDebugRead()
-{
-  axp.debugCharging();
-  DEBUG_MSG("vbus current %f\n", axp.getVbusCurrent());
-  DEBUG_MSG("charge current %f\n", axp.getBattChargeCurrent());
-  DEBUG_MSG("bat voltage %f\n", axp.getBattVoltage());
-  DEBUG_MSG("batt pct %d\n", axp.getBattPercentage());
-  DEBUG_MSG("is battery connected %d\n", axp.isBatteryConnect());
-  DEBUG_MSG("is USB connected %d\n", axp.isVBUSPlug());
-  DEBUG_MSG("is charging %d\n", axp.isChargeing());
-
-  return 30 * 1000;
-}
-
-Periodic axpDebugOutput(axpDebugRead);
-#endif
-
-
 /// loop code specific to ESP32 targets
 void esp32Loop()
 {
@@ -131,8 +108,10 @@ void esp32Loop()
 
 void cpuDeepSleep(uint64_t msecToWake)
 {
+    
     /*
-    Some ESP32 IOs have internal pullups or pulldowns, which are enabled by default.
+    Some ESP32 IOs have internal pullups or pulldowns, which are enab 
+     by default.
     If an external circuit drives this pin in deep sleep mode, current consumption may
     increase due to current flowing through these pullups and pulldowns.
 
@@ -164,20 +143,27 @@ void cpuDeepSleep(uint64_t msecToWake)
     // We want RTC peripherals to stay on
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 
-#ifdef BUTTON_PIN
-    // Only GPIOs which are have RTC functionality can be used in this bit map: 0,2,4,12-15,25-27,32-39.
-    uint64_t gpioMask = (1ULL << BUTTON_PIN);
+    #ifdef BUTTON_PIN
+        // Only GPIOs which are have RTC functionality can be used in this bit map: 0,2,4,12-15,25-27,32-39.
+        uint64_t gpioMask = (1ULL << BUTTON_PIN);
 
-#ifdef BUTTON_NEED_PULLUP
-    gpio_pullup_en((gpio_num_t)BUTTON_PIN);
-#endif
+        // Not needed because both of the current boards have external pullups
+        // FIXME change polarity in hw so we can wake on ANY_HIGH instead - that would allow us to use all three buttons (instead of
+        // just the first) gpio_pullup_en((gpio_num_t)BUTTON_PIN);
 
-    // Not needed because both of the current boards have external pullups
-    // FIXME change polarity in hw so we can wake on ANY_HIGH instead - that would allow us to use all three buttons (instead of
-    // just the first) gpio_pullup_en((gpio_num_t)BUTTON_PIN);
+        esp_sleep_enable_ext1_wakeup(gpioMask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    #endif
 
-    esp_sleep_enable_ext1_wakeup(gpioMask, ESP_EXT1_WAKEUP_ALL_LOW);
-#endif
+    #ifdef BUTTON_PIN_2
+        // Only GPIOs which are have RTC functionality can be used in this bit map: 0,2,4,12-15,25-27,32-39.
+        // gpioMask = (1ULL << BUTTON_PIN_2);
+
+        // Not needed because both of the current boards have external pullups
+        // FIXME change polarity in hw so we can wake on ANY_HIGH instead - that would allow us to use all three buttons (instead of
+        // just the first) gpio_pullup_en((gpio_num_t)BUTTON_PIN_2);
+
+        // esp_sleep_enable_ext1_wakeup(gpioMask, ESP_EXT1_WAKEUP_ALL_LOW);
+    #endif
 
     esp_sleep_enable_timer_wakeup(msecToWake * 1000ULL); // call expects usecs
     esp_deep_sleep_start();                              // TBD mA sleep current (battery)

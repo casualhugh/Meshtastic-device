@@ -1,3 +1,4 @@
+#ifdef WANT_WIFI
 #include "NodeDB.h"
 #include "PowerFSM.h"
 #include "RadioLibInterface.h"
@@ -835,3 +836,4 @@ void handleScanNetworks(HTTPRequest *req, HTTPResponse *res)
     std::string jsonStr = jsonObjOuter.dump();
     res->print(jsonStr.c_str());
 }
+#endif

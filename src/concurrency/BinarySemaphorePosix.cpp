@@ -1,5 +1,5 @@
 #include "configuration.h"
-#include "concurrency/BinarySemaphorePosix.h"
+#include "BinarySemaphorePosix.h"
 
 #ifndef HAS_FREE_RTOS
 

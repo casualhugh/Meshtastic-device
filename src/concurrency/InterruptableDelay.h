@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../freertosinc.h"
+#include "freertosinc.h"
 
 
 #ifdef HAS_FREE_RTOS
-#include "concurrency/BinarySemaphoreFreeRTOS.h"
+#include "BinarySemaphoreFreeRTOS.h"
 #define BinarySemaphore BinarySemaphoreFreeRTOS
 #else
-#include "concurrency/BinarySemaphorePosix.h"
+#include "BinarySemaphorePosix.h"
 #define BinarySemaphore BinarySemaphorePosix
 #endif
 
