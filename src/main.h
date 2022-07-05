@@ -4,18 +4,14 @@
 #include "GPSStatus.h"
 #include "NodeStatus.h"
 #include "PowerStatus.h"
-#include "graphics/Screen.h"
+#include "ButtonStatus.h"
+#include "Screen.h"
 #include "mesh/generated/telemetry.pb.h"
 
 extern uint8_t screen_found;
 extern uint8_t screen_model;
-extern uint8_t cardkb_found;
-extern uint8_t kb_model;
-extern uint8_t faceskb_found;
 extern uint8_t rtc_found;
 
-extern bool eink_found;
-extern bool axp192_found;
 extern bool isCharging;
 extern bool isUSBPowered;
 
@@ -43,4 +39,4 @@ extern uint32_t serialSinceMsec;
 // This will supress the current delay and instead try to run ASAP.
 extern bool runASAP;
 
-void nrf52Setup(), esp32Setup(), nrf52Loop(), esp32Loop(), clearBonds();
+void esp32Setup(), esp32Loop(), clearBonds();
