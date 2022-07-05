@@ -24,27 +24,16 @@ class Screen
 #else
 #include <cstring>
 
-#include <OLEDDisplayUi.h>
+#include "OLEDDisplayUi.h"
 
-#include "../configuration.h"
+#include "configuration.h"
 
-#ifdef USE_ST7567
-#include <ST7567Wire.h>
-#elif defined(USE_SH1106)
-#include <SH1106Wire.h>
-#elif defined(USE_SSD1306)
-#include <SSD1306Wire.h>
-#else
-// the SH1106/SSD1306 variant is auto-detected
-#include <AutoOLEDWire.h>
-#endif
+#include "GC0928.h"
 
-#include "EInkDisplay2.h"
-#include "TFTDisplay.h"
 #include "TypedQueue.h"
 #include "commands.h"
-#include "concurrency/LockGuard.h"
-#include "concurrency/OSThread.h"
+#include "LockGuard.h"
+#include "OSThread.h"
 #include "power.h"
 #include <string>
 #include "mesh/MeshModule.h"
@@ -53,33 +42,34 @@ class Screen
 #ifndef BRIGHTNESS_DEFAULT
 #define BRIGHTNESS_DEFAULT 150
 #endif
-
+#include "DebugInfo.h"
 namespace graphics
 {
 
-// Forward declarations
-class Screen;
+// // Forward declarations
+// class Screen;
 
-/// Handles gathering and displaying debug information.
-class DebugInfo
-{
-  public:
-    DebugInfo(const DebugInfo &) = delete;
-    DebugInfo &operator=(const DebugInfo &) = delete;
+// /// Handles gathering and displaying debug information.
+// class DebugInfo
+// {
+//   public:
+//     DebugInfo(const DebugInfo &) = delete;
+//     DebugInfo &operator=(const DebugInfo &) = delete;
 
-  private:
-    friend Screen;
+//   private:
+//     friend Screen;
 
-    DebugInfo() {}
+//     DebugInfo() {}
 
-    /// Renders the debug screen.
-    void drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
-    void drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
-    void drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+//     /// Renders the debug screen.
+//     void drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+//     void drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+//     void drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 
-    /// Protects all of internal state.
-    concurrency::Lock lock;
-};
+//     /// Protects all of internal state.
+//     concurrency::Lock lock;
+// };
+
 
 /**
  * @brief This class deals with showing things on the screen of the device.
@@ -100,9 +90,10 @@ class Screen : public concurrency::OSThread
         CallbackObserver<Screen, const MeshPacket *>(this, &Screen::handleTextMessage);
     CallbackObserver<Screen, const UIFrameEvent *> uiFrameEventObserver =
         CallbackObserver<Screen, const UIFrameEvent *>(this, &Screen::handleUIFrameEvent);
-
+    CallbackObserver<Screen, const meshtastic::Status *> buttonStatusObserver =
+        CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
   public:
-    explicit Screen(uint8_t address, int sda = -1, int scl = -1);
+    explicit Screen();
 
     Screen(const Screen &) = delete;
     Screen &operator=(const Screen &) = delete;
@@ -305,23 +296,8 @@ class Screen : public concurrency::OSThread
     DebugInfo debugInfo;
 
     /// Display device
+    GC0928 dispdev;
 
-// #ifdef RAK4630
-//     EInkDisplay dispdev;
-//     AutoOLEDWire dispdev_oled;
-#ifdef USE_SH1106
-    SH1106Wire dispdev;
-#elif defined(USE_SSD1306)
-    SSD1306Wire dispdev;
-#elif defined(ST7735_CS) || defined(ILI9341_DRIVER)
-    TFTDisplay dispdev;
-#elif defined(HAS_EINK)
-    EInkDisplay dispdev;
-#elif defined(USE_ST7567)
-    ST7567Wire dispdev;
-#else
-    AutoOLEDWire dispdev;
-#endif
     /// UI helper for rendering to frames and switching between them
     OLEDDisplayUi ui;
 };

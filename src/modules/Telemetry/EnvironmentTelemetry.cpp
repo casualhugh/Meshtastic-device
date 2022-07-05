@@ -7,9 +7,9 @@
 #include "Router.h"
 #include "configuration.h"
 #include "main.h"
-#include <OLEDDisplay.h>
-#include <OLEDDisplayUi.h>
-
+#include "OLEDDisplay.h"
+#include "OLEDDisplayUi.h"
+#ifdef USE_SENSORS
 // Sensors
 #include "Sensor/BME280Sensor.h"
 #include "Sensor/BME680Sensor.h"
@@ -27,22 +27,17 @@ DallasSensor dallasSensor;
 MCP9808Sensor mcp9808Sensor;
 INA260Sensor ina260Sensor;
 INA219Sensor ina219Sensor;
-
+#endif
 #define FAILED_STATE_SENSOR_READ_MULTIPLIER 10
 #define DISPLAY_RECEIVEID_MEASUREMENTS_ON_SCREEN true
 
-#ifdef HAS_EINK
-// The screen is bigger so use bigger fonts
-#define FONT_SMALL ArialMT_Plain_16
-#define FONT_MEDIUM ArialMT_Plain_24
-#define FONT_LARGE ArialMT_Plain_24
-#else
-#define FONT_SMALL ArialMT_Plain_10
-#define FONT_MEDIUM ArialMT_Plain_16
-#define FONT_LARGE ArialMT_Plain_24
-#endif
 
-#define fontHeight(font) ((font)[1] + 1) // height is position 1
+#define FONT_SMALL 1
+#define FONT_MEDIUM 2
+#define FONT_LARGE 3
+
+
+#define fontHeight(font) (font * 10) // height is position 1
 
 #define FONT_HEIGHT_SMALL fontHeight(FONT_SMALL)
 #define FONT_HEIGHT_MEDIUM fontHeight(FONT_MEDIUM)
@@ -80,7 +75,7 @@ int32_t EnvironmentTelemetryModule::runOnce()
             DEBUG_MSG("Environment Telemetry: Initializing\n");
             // it's possible to have this module enabled, only for displaying values on the screen.
             // therefore, we should only enable the sensor loop if measurement is also enabled
-            
+            #ifdef USE_SENSORS
             switch (moduleConfig.telemetry.environment_sensor_type) {
                 case TelemetrySensorType_DHT11:
                 case TelemetrySensorType_DHT12:
@@ -105,6 +100,7 @@ int32_t EnvironmentTelemetryModule::runOnce()
                 result = ina260Sensor.runOnce();
             if (ina219Sensor.hasSensor())
                 result = ina219Sensor.runOnce();
+            #endif
         }
         return result;
     } else {
@@ -133,11 +129,13 @@ int32_t EnvironmentTelemetryModule::runOnce()
                       sensor_read_error_count, sensor_read_error_count, sensor_read_error_count,
                       moduleConfig.telemetry.environment_read_error_count_threshold - sensor_read_error_count);
         }
+        #ifdef USE_SENSORS
         if (!sendOurTelemetry()) {
             // if we failed to read the sensor, then try again
             // as soon as we can according to the maximum polling frequency
             return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
         }
+        #endif
     }
     return getIntervalOrDefaultMs(moduleConfig.telemetry.environment_update_interval);
 #endif
@@ -167,12 +165,12 @@ float EnvironmentTelemetryModule::CelsiusToFahrenheit(float c)
 
 void EnvironmentTelemetryModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(x, y, "Environment");
+    display->drawString(x, y + display->getHeight() / 2 - fontHeight(FONT_MEDIUM), "Environment");
     if (lastMeasurementPacket == nullptr) {
         display->setFont(FONT_SMALL);
-        display->drawString(x, y += fontHeight(FONT_MEDIUM), "No measurement");
+        display->drawString(x, y + display->getHeight() / 2, "No measurement");
         return;
     }
 
@@ -184,7 +182,7 @@ void EnvironmentTelemetryModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiSt
     auto &p = lastMeasurementPacket->decoded;
     if (!pb_decode_from_bytes(p.payload.bytes, p.payload.size, Telemetry_fields, &lastMeasurement)) {
         display->setFont(FONT_SMALL);
-        display->drawString(x, y += fontHeight(FONT_MEDIUM), "Measurement Error");
+        display->drawString(x, y + display->getHeight() / 2, "Measurement Error");
         DEBUG_MSG("Environment Telemetry: unable to decode last packet");
         return;
     }
@@ -194,12 +192,12 @@ void EnvironmentTelemetryModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiSt
     if (moduleConfig.telemetry.environment_display_fahrenheit) {
         last_temp = String(CelsiusToFahrenheit(lastMeasurement.variant.environment_metrics.temperature), 0) + "°F";
     }
-    display->drawString(x, y += fontHeight(FONT_MEDIUM) - 2, "From: " + String(lastSender) + "(" + String(agoSecs) + "s)");
-    display->drawString(x, y += fontHeight(FONT_SMALL) - 2,
+    display->drawString(x, y + display->getHeight() / 2, "From: " + String(lastSender) + "(" + String(agoSecs) + "s)");
+    display->drawString(x, y + display->getHeight() / 2 + fontHeight(FONT_SMALL),
                         "Temp/Hum: " + last_temp + " / " +
                             String(lastMeasurement.variant.environment_metrics.relative_humidity, 0) + "%");
     if (lastMeasurement.variant.environment_metrics.barometric_pressure != 0)
-        display->drawString(x, y += fontHeight(FONT_SMALL),
+        display->drawString(x, y + display->getHeight() / 2 + fontHeight(FONT_SMALL) * 2,
                             "Press: " + String(lastMeasurement.variant.environment_metrics.barometric_pressure, 0) + "hPA");
 }
 
@@ -239,7 +237,7 @@ bool EnvironmentTelemetryModule::sendOurTelemetry(NodeNum dest, bool wantReplies
 
     DEBUG_MSG("-----------------------------------------\n");
     DEBUG_MSG("Environment Telemetry: Read data\n");
-
+    #ifdef USE_SENSORS
     switch (moduleConfig.telemetry.environment_sensor_type) {
         case TelemetrySensorType_DS18B20:
             if (!dallasSensor.getMetrics(&m))
@@ -265,7 +263,7 @@ bool EnvironmentTelemetryModule::sendOurTelemetry(NodeNum dest, bool wantReplies
         ina219Sensor.getMetrics(&m);
     if (ina260Sensor.hasSensor())
         ina260Sensor.getMetrics(&m);
-
+    #endif
     DEBUG_MSG("Telemetry->time: %i\n", m.time);
     DEBUG_MSG("Telemetry->barometric_pressure: %f\n", m.variant.environment_metrics.barometric_pressure);
     DEBUG_MSG("Telemetry->current: %f\n", m.variant.environment_metrics.current);

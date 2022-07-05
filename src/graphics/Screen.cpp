@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "configuration.h"
 #ifndef NO_SCREEN
-#include <OLEDDisplay.h>
+#include "OLEDDisplay.h"
 
 #include "GPS.h"
 #include "MeshService.h"
@@ -41,7 +41,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef NO_ESP32
 #include "esp_task_wdt.h"
-#include "mesh/http/WiFiAPClient.h"
+#ifdef WANT_WIFI
+    #include "mesh/http/WiFiAPClient.h"
+#endif
 #endif
 
 using namespace meshtastic; /** @todo remove */
@@ -65,21 +67,12 @@ static FrameCallback normalFrames[MAX_NUM_NODES + NUM_EXTRA_FRAMES];
 static uint32_t targetFramerate = IDLE_FRAMERATE;
 static char btPIN[16] = "888888";
 
-// This image definition is here instead of images.h because it's modified dynamically by the drawBattery function
-uint8_t imgBattery[16] = {0xFF, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0xE7, 0x3C};
-
-// Threshold values for the GPS lock accuracy bar display
-uint32_t dopThresholds[5] = {2000, 1000, 500, 200, 100};
-
 // At some point, we're going to ask all of the modules if they would like to display a screen frame
 // we'll need to hold onto pointers for the modules that can draw a frame.
 std::vector<MeshModule *> moduleFrames;
 
 // Stores the last 4 of our hardware ID, to make finding the device for pairing easier
 static char ourId[5];
-
-// GeoCoord object for the screen
-GeoCoord geoCoord;
 
 // OEM Config File
 static const char *oemConfigFile = "/prefs/oem.proto";
@@ -94,22 +87,15 @@ static uint16_t displayWidth, displayHeight;
 #define SCREEN_WIDTH displayWidth
 #define SCREEN_HEIGHT displayHeight
 
-#if defined(HAS_EINK) || defined(ILI9341_DRIVER)
-// The screen is bigger so use bigger fonts
-#define FONT_SMALL ArialMT_Plain_16
-#define FONT_MEDIUM ArialMT_Plain_24
-#define FONT_LARGE ArialMT_Plain_24
-#else
-#define FONT_SMALL ArialMT_Plain_10
-#define FONT_MEDIUM ArialMT_Plain_16
-#define FONT_LARGE ArialMT_Plain_24
-#endif
+#define FONT_SMALL 1
+#define FONT_MEDIUM 2
+#define FONT_LARGE 3
 
 #define fontHeight(font) ((font)[1] + 1) // height is position 1
 
-#define FONT_HEIGHT_SMALL fontHeight(FONT_SMALL)
-#define FONT_HEIGHT_MEDIUM fontHeight(FONT_MEDIUM)
-
+#define FONT_HEIGHT_SMALL 10
+#define FONT_HEIGHT_MEDIUM 20
+#define FONT_HEIGHT_LARGE 30
 #define getStringCenteredX(s) ((SCREEN_WIDTH - display->getStringWidth(s)) / 2)
 
 #ifndef SCREEN_TRANSITION_MSECS
@@ -130,20 +116,20 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
                      icon_width, icon_height, (const uint8_t *)icon_bits);
 
     display->setFont(FONT_MEDIUM);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    const char *title = "meshtastic.org";
-    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, title);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    const char *title = "WhereU AT";
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, title);
     display->setFont(FONT_SMALL);
 
     // Draw region in upper left
     if (upperMsg)
-        display->drawString(x + 0, y + 0, upperMsg);
+        display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL, upperMsg);
 
     // Draw version in upper right
     char buf[16];
     snprintf(buf, sizeof(buf), "%s",
              xstr(APP_VERSION_SHORT)); // Note: we don't bother printing region or now, it makes the string too long
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(buf), y + 0, buf);
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 + FONT_HEIGHT_MEDIUM, buf);
     screen->forceDisplay();
 
     // FIXME - draw serial # somewhere?
@@ -179,9 +165,9 @@ static void drawOEMIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDi
         break;
     }
 
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     const char *title = oemStore.oem_text;
-    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, title);
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - FONT_HEIGHT_MEDIUM, title);
     display->setFont(FONT_SMALL);
 
     // Draw region in upper left
@@ -192,7 +178,7 @@ static void drawOEMIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDi
     char buf[16];
     snprintf(buf, sizeof(buf), "%s",
              xstr(APP_VERSION_SHORT)); // Note: we don't bother printing region or now, it makes the string too long
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(buf), y + 0, buf);
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, buf);
     screen->forceDisplay();
 
     // FIXME - draw serial # somewhere?
@@ -210,7 +196,7 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->drawString(64 + x, y, "Creating SSL certificate");
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - FONT_HEIGHT_SMALL, "Creating SSL certificate");
 
 #ifndef NO_ESP32
     yield();
@@ -219,9 +205,9 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 
     display->setFont(FONT_SMALL);
     if ((millis() / 1000) % 2) {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . . .");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 , "Please wait . . .");
     } else {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . .  ");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, "Please wait . .  ");
     }
 }
 
@@ -233,24 +219,23 @@ static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, i
         display->setFont(FONT_SMALL);
 
         display->setTextAlignment(TEXT_ALIGN_CENTER);
-        display->drawString(64 + x, y, "//\\ E S H T /\\ S T / C");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - FONT_HEIGHT_SMALL * 2, "//\\ E S H T /\\ S T / C");
 
-        display->setTextAlignment(TEXT_ALIGN_LEFT);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
 
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Set the region using the");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "Meshtastic Android, iOS,");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "Flasher or CLI client.");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - FONT_HEIGHT_SMALL, "Set the region using the");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, "Meshtastic Android, iOS,");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 + FONT_HEIGHT_SMALL, "Flasher or CLI client.");
     } else {
         display->setFont(FONT_SMALL);
 
         display->setTextAlignment(TEXT_ALIGN_CENTER);
-        display->drawString(64 + x, y, "//\\ E S H T /\\ S T / C");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - 20, "//\\ E S H T /\\ S T / C");
 
-        display->setTextAlignment(TEXT_ALIGN_LEFT);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
 
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Visit meshtastic.org");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "for more information.");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 - FONT_HEIGHT_SMALL, "Visit meshtastic.org");
+        display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, "for more information.");
     }
 
 #ifndef NO_ESP32
@@ -258,14 +243,6 @@ static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, i
     esp_task_wdt_reset();
 #endif
 }
-
-#ifdef HAS_EINK
-/// Used on eink displays while in deep sleep
-static void drawSleepScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-    drawIconScreen("Sleeping...", display, state, x, y);
-}
-#endif
 
 static void drawModuleFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
@@ -321,13 +298,13 @@ static void drawFrameFirmware(OLEDDisplay *display, OLEDDisplayUiState *state, i
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(64 + x, y, "Updating");
+    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 - FONT_HEIGHT_MEDIUM, "Updating");
 
     display->setFont(FONT_SMALL);
     if ((millis() / 1000) % 2) {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . . .");
+        display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2, "Please wait . . .");
     } else {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . .  ");
+        display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2, "Please wait . .  ");
     }
 
     // display->setFont(FONT_LARGE);
@@ -370,17 +347,17 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     // Demo for drawStringMaxWidth:
     // with the third parameter you can define the width after which words will
     // be wrapped. Currently only spaces and "-" are allowed for wrapping
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
     String sender = (node && node->has_user) ? node->user.short_name : "???";
-    display->drawString(0 + x, 0 + y, sender);
+    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 - FONT_HEIGHT_MEDIUM * 3, sender);
     display->setFont(FONT_SMALL);
 
     // the max length of this buffer is much longer than we can possibly print
     static char tempBuf[96];
     snprintf(tempBuf, sizeof(tempBuf), "         %s", mp.decoded.payload.bytes);
 
-    display->drawStringMaxWidth(4 + x, 10 + y, SCREEN_WIDTH - (6 + x), tempBuf);
+    display->drawStringMaxWidth(x, y + display->getHeight() / 2, SCREEN_WIDTH - (6 + x), tempBuf);
 }
 
 /// Draw a series of fields in a column, wrapping to multiple colums if needed
@@ -434,151 +411,6 @@ static void drawColumns(OLEDDisplay *display, int16_t x, int16_t y, const char *
     }
 #endif
 
-// Draw power bars or a charging indicator on an image of a battery, determined by battery charge voltage or percentage.
-static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *imgBuffer, const PowerStatus *powerStatus)
-{
-    static const uint8_t powerBar[3] = {0x81, 0xBD, 0xBD};
-    static const uint8_t lightning[8] = {0xA1, 0xA1, 0xA5, 0xAD, 0xB5, 0xA5, 0x85, 0x85};
-    // Clear the bar area on the battery image
-    for (int i = 1; i < 14; i++) {
-        imgBuffer[i] = 0x81;
-    }
-    // If charging, draw a charging indicator
-    if (powerStatus->getIsCharging()) {
-        memcpy(imgBuffer + 3, lightning, 8);
-        // If not charging, Draw power bars
-    } else {
-        for (int i = 0; i < 4; i++) {
-            if (powerStatus->getBatteryChargePercent() >= 25 * i)
-                memcpy(imgBuffer + 1 + (i * 3), powerBar, 3);
-        }
-    }
-    display->drawFastImage(x, y, 16, 8, imgBuffer);
-}
-
-// Draw nodes status
-static void drawNodes(OLEDDisplay *display, int16_t x, int16_t y, NodeStatus *nodeStatus)
-{
-    char usersString[20];
-    sprintf(usersString, "%d/%d", nodeStatus->getNumOnline(), nodeStatus->getNumTotal());
-    display->drawFastImage(x, y, 8, 8, imgUser);
-    display->drawString(x + 10, y - 2, usersString);
-}
-
-// Draw GPS status summary
-static void drawGPS(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
-{
-    if (config.position.fixed_position) {
-        // GPS coordinates are currently fixed
-        display->drawString(x - 1, y - 2, "Fixed GPS");
-        return;
-    }
-    if (!gps->getIsConnected()) {
-        display->drawString(x, y - 2, "No GPS");
-        return;
-    }
-    display->drawFastImage(x, y, 6, 8, gps->getHasLock() ? imgPositionSolid : imgPositionEmpty);
-    if (!gps->getHasLock()) {
-        display->drawString(x + 8, y - 2, "No sats");
-        return;
-    } else {
-        char satsString[3];
-        uint8_t bar[2] = {0};
-
-        // Draw DOP signal bars
-        for (int i = 0; i < 5; i++) {
-            if (gps->getDOP() <= dopThresholds[i])
-                bar[0] = ~((1 << (5 - i)) - 1);
-            else
-                bar[0] = 0b10000000;
-            // bar[1] = bar[0];
-            display->drawFastImage(x + 9 + (i * 2), y, 2, 8, bar);
-        }
-
-        // Draw satellite image
-        display->drawFastImage(x + 24, y, 8, 8, imgSatellite);
-
-        // Draw the number of satellites
-        sprintf(satsString, "%u", gps->getNumSatellites());
-        display->drawString(x + 34, y - 2, satsString);
-    }
-}
-
-static void drawGPSAltitude(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
-{
-    String displayLine = "";
-    if (!gps->getIsConnected() && !config.position.fixed_position) {
-        // displayLine = "No GPS Module";
-        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
-    } else if (!gps->getHasLock() && !config.position.fixed_position) {
-        // displayLine = "No GPS Lock";
-        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
-    } else {
-        geoCoord.updateCoords(int32_t(gps->getLatitude()), int32_t(gps->getLongitude()), int32_t(gps->getAltitude()));
-        displayLine = "Altitude: " + String(geoCoord.getAltitude()) + "m";
-        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
-    }
-}
-
-// Draw GPS status coordinates
-static void drawGPScoordinates(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
-{
-    auto gpsFormat = config.display.gps_format;
-    String displayLine = "";
-
-    if (!gps->getIsConnected() && !config.position.fixed_position) {
-        displayLine = "No GPS Module";
-        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
-    } else if (!gps->getHasLock() && !config.position.fixed_position) {
-        displayLine = "No GPS Lock";
-        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
-    } else {
-
-        if (gpsFormat != Config_DisplayConfig_GpsCoordinateFormat_GpsFormatDMS) {
-            char coordinateLine[22];
-            geoCoord.updateCoords(int32_t(gps->getLatitude()), int32_t(gps->getLongitude()), int32_t(gps->getAltitude()));
-            if (gpsFormat == Config_DisplayConfig_GpsCoordinateFormat_GpsFormatDec) { // Decimal Degrees
-                sprintf(coordinateLine, "%f %f", geoCoord.getLatitude() * 1e-7, geoCoord.getLongitude() * 1e-7);
-            } else if (gpsFormat == Config_DisplayConfig_GpsCoordinateFormat_GpsFormatUTM) { // Universal Transverse Mercator
-                sprintf(coordinateLine, "%2i%1c %06u %07u", geoCoord.getUTMZone(), geoCoord.getUTMBand(),
-                        geoCoord.getUTMEasting(), geoCoord.getUTMNorthing());
-            } else if (gpsFormat == Config_DisplayConfig_GpsCoordinateFormat_GpsFormatMGRS) { // Military Grid Reference System
-                sprintf(coordinateLine, "%2i%1c %1c%1c %05u %05u", geoCoord.getMGRSZone(), geoCoord.getMGRSBand(),
-                        geoCoord.getMGRSEast100k(), geoCoord.getMGRSNorth100k(), geoCoord.getMGRSEasting(),
-                        geoCoord.getMGRSNorthing());
-            } else if (gpsFormat == Config_DisplayConfig_GpsCoordinateFormat_GpsFormatOLC) { // Open Location Code
-                geoCoord.getOLCCode(coordinateLine);
-            } else if (gpsFormat == Config_DisplayConfig_GpsCoordinateFormat_GpsFormatOSGR) { // Ordnance Survey Grid Reference
-                if (geoCoord.getOSGRE100k() == 'I' || geoCoord.getOSGRN100k() == 'I') // OSGR is only valid around the UK region
-                    sprintf(coordinateLine, "%s", "Out of Boundary");
-                else
-                    sprintf(coordinateLine, "%1c%1c %05u %05u", geoCoord.getOSGRE100k(), geoCoord.getOSGRN100k(),
-                            geoCoord.getOSGREasting(), geoCoord.getOSGRNorthing());
-            }
-
-            // If fixed position, display text "Fixed GPS" alternating with the coordinates.
-            if (config.position.fixed_position) {
-                if ((millis() / 10000) % 2) {
-                    display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(coordinateLine))) / 2, y, coordinateLine);
-                } else {
-                    display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth("Fixed GPS"))) / 2, y, "Fixed GPS");
-                }
-            } else {
-                display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(coordinateLine))) / 2, y, coordinateLine);
-            }
-
-        } else {
-            char latLine[22];
-            char lonLine[22];
-            sprintf(latLine, "%2i° %2i' %2u\" %1c", geoCoord.getDMSLatDeg(), geoCoord.getDMSLatMin(), geoCoord.getDMSLatSec(),
-                    geoCoord.getDMSLatCP());
-            sprintf(lonLine, "%3i° %2i' %2u\" %1c", geoCoord.getDMSLonDeg(), geoCoord.getDMSLonMin(), geoCoord.getDMSLonSec(),
-                    geoCoord.getDMSLonCP());
-            display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(latLine))) / 2, y - FONT_HEIGHT_SMALL * 1, latLine);
-            display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(lonLine))) / 2, y, lonLine);
-        }
-    }
-}
 
 namespace
 {
@@ -817,23 +649,8 @@ void _screen_header()
 }
 #endif
 
-// #ifdef RAK4630
-// Screen::Screen(uint8_t address, int sda, int scl) : OSThread("Screen"), cmdQueue(32), dispdev(address, sda, scl),
-// dispdev_oled(address, sda, scl), ui(&dispdev)
-// {
-//     address_found = address;
-//     cmdQueue.setReader(this);
-//     if (screen_found) {
-//         (void)dispdev;
-//         AutoOLEDWire dispdev = dispdev_oled;
-//         (void)ui;
-//         OLEDDisplayUi ui(&dispdev);
-//     }
-// }
-// #else
-Screen::Screen(uint8_t address, int sda, int scl) : OSThread("Screen"), cmdQueue(32), dispdev(address, sda, scl), ui(&dispdev)
+Screen::Screen() : OSThread("Screen"), cmdQueue(32), dispdev(), ui(&dispdev)
 {
-    address_found = address;
     cmdQueue.setReader(this);
 }
 // #endif
@@ -843,12 +660,6 @@ Screen::Screen(uint8_t address, int sda, int scl) : OSThread("Screen"), cmdQueue
  */
 void Screen::doDeepSleep()
 {
-#ifdef HAS_EINK
-    static FrameCallback sleepFrames[] = {drawSleepScreen};
-    static const int sleepFrameCount = sizeof(sleepFrames) / sizeof(sleepFrames[0]);
-    ui.setFrames(sleepFrames, sleepFrameCount);
-    ui.update();
-#endif
     setOn(false);
 }
 
@@ -879,10 +690,6 @@ void Screen::setup()
     // We don't set useDisplay until setup() is called, because some boards have a declaration of this object but the device
     // is never found when probing i2c and therefore we don't call setup and never want to do (invalid) accesses to this device.
     useDisplay = true;
-
-#ifdef AutoOLEDWire_h
-    dispdev.setDetected(screen_model);
-#endif
 
     // Load OEM config from Proto file if existent
     loadProto(oemConfigFile, OEMStore_size, sizeof(oemConfigFile), OEMStore_fields, &oemStore);
@@ -941,6 +748,7 @@ void Screen::setup()
     serialSinceMsec = millis();
 
     // Subscribe to status updates
+    buttonStatusObserver.observe(&buttonStatus->onNewStatus);
     powerStatusObserver.observe(&powerStatus->onNewStatus);
     gpsStatusObserver.observe(&gpsStatus->onNewStatus);
     nodeStatusObserver.observe(&nodeStatus->onNewStatus);
@@ -953,10 +761,6 @@ void Screen::setup()
 
 void Screen::forceDisplay()
 {
-    // Nasty hack to force epaper updates for 'key' frames.  FIXME, cleanup.
-#ifdef HAS_EINK
-    dispdev.forceDisplay();
-#endif
 }
 
 static uint32_t lastScreenTransition;
@@ -1180,12 +984,12 @@ void Screen::setFrames()
     // call a method on debugInfoScreen object (for more details)
     normalFrames[numframes++] = &Screen::drawDebugInfoSettingsTrampoline;
 
-#ifndef NO_ESP32
-    if (isWifiAvailable()) {
-        // call a method on debugInfoScreen object (for more details)
-        normalFrames[numframes++] = &Screen::drawDebugInfoWiFiTrampoline;
-    }
-#endif
+    #ifndef NO_ESP32
+        // if (isWifiAvailable()) {
+        //     // call a method on debugInfoScreen object (for more details)
+        //     normalFrames[numframes++] = &Screen::drawDebugInfoWiFiTrampoline;
+        // }
+    #endif
 
     DEBUG_MSG("Finished building frames. numframes: %d\n", numframes);
 
@@ -1296,319 +1100,7 @@ void Screen::setFastFramerate()
     runASAP = true;
 }
 
-void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-    displayedNodeNum = 0; // Not currently showing a node pane
 
-    display->setFont(FONT_SMALL);
-
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    char channelStr[20];
-    {
-        concurrency::LockGuard guard(&lock);
-        auto chName = channels.getPrimaryName();
-        snprintf(channelStr, sizeof(channelStr), "%s", chName);
-    }
-
-    // Display power status
-    if (powerStatus->getHasBattery())
-        drawBattery(display, x, y + 2, imgBattery, powerStatus);
-    else if (powerStatus->knowsUSB())
-        display->drawFastImage(x, y + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
-    // Display nodes status
-    drawNodes(display, x + (SCREEN_WIDTH * 0.25), y + 2, nodeStatus);
-    // Display GPS status
-    drawGPS(display, x + (SCREEN_WIDTH * 0.63), y + 2, gpsStatus);
-
-    // Draw the channel name
-    display->drawString(x, y + FONT_HEIGHT_SMALL, channelStr);
-    // Draw our hardware ID to assist with bluetooth pairing
-    display->drawFastImage(x + SCREEN_WIDTH - (10) - display->getStringWidth(ourId), y + 2 + FONT_HEIGHT_SMALL, 8, 8, imgInfo);
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL, ourId);
-
-    // Draw any log messages
-    display->drawLogBuffer(x, y + (FONT_HEIGHT_SMALL * 2));
-
-    /* Display a heartbeat pixel that blinks every time the frame is redrawn */
-#ifdef SHOW_REDRAWS
-    if (heartbeat)
-        display->setPixel(0, 0);
-    heartbeat = !heartbeat;
-#endif
-}
-
-// Jm
-void DebugInfo::drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-#ifdef HAS_WIFI
-    const char *wifiName = config.wifi.ssid;
-    const char *wifiPsw = config.wifi.psk;
-
-    displayedNodeNum = 0; // Not currently showing a node pane
-
-    display->setFont(FONT_SMALL);
-
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    if (isSoftAPForced()) {
-        display->drawString(x, y, String("WiFi: Software AP (Admin)"));
-    } else if (config.wifi.ap_mode) {
-        display->drawString(x, y, String("WiFi: Software AP"));
-    } else if (WiFi.status() != WL_CONNECTED) {
-        display->drawString(x, y, String("WiFi: Not Connected"));
-    } else {
-        display->drawString(x, y, String("WiFi: Connected"));
-
-        display->drawString(x + SCREEN_WIDTH - display->getStringWidth("RSSI " + String(WiFi.RSSI())), y,
-                            "RSSI " + String(WiFi.RSSI()));
-    }
-
-    /*
-    - WL_CONNECTED: assigned when connected to a WiFi network;
-    - WL_NO_SSID_AVAIL: assigned when no SSID are available;
-    - WL_CONNECT_FAILED: assigned when the connection fails for all the attempts;
-    - WL_CONNECTION_LOST: assigned when the connection is lost;
-    - WL_DISCONNECTED: assigned when disconnected from a network;
-    - WL_IDLE_STATUS: it is a temporary status assigned when WiFi.begin() is called and remains active until the number of
-    attempts expires (resulting in WL_CONNECT_FAILED) or a connection is established (resulting in WL_CONNECTED);
-    - WL_SCAN_COMPLETED: assigned when the scan networks is completed;
-    - WL_NO_SHIELD: assigned when no WiFi shield is present;
-
-    */
-    if (WiFi.status() == WL_CONNECTED || isSoftAPForced() || config.wifi.ap_mode) {
-        if (config.wifi.ap_mode || isSoftAPForced()) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "IP: " + String(WiFi.softAPIP().toString().c_str()));
-
-            // Number of connections to the AP. Default max for the esp32 is 4
-            display->drawString(x + SCREEN_WIDTH - display->getStringWidth("(" + String(WiFi.softAPgetStationNum()) + "/4)"),
-                                y + FONT_HEIGHT_SMALL * 1, "(" + String(WiFi.softAPgetStationNum()) + "/4)");
-        } else {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "IP: " + String(WiFi.localIP().toString().c_str()));
-        }
-
-    } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "SSID Not Found");
-    } else if (WiFi.status() == WL_CONNECTION_LOST) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Connection Lost");
-    } else if (WiFi.status() == WL_CONNECT_FAILED) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Connection Failed");
-        //} else if (WiFi.status() == WL_DISCONNECTED) {
-        //    display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Disconnected");
-    } else if (WiFi.status() == WL_IDLE_STATUS) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Idle ... Reconnecting");
-    } else {
-        // Codes:
-        // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-reason-code
-        if (getWifiDisconnectReason() == 2) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Authentication Invalid");
-        } else if (getWifiDisconnectReason() == 3) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "De-authenticated");
-        } else if (getWifiDisconnectReason() == 4) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Disassociated Expired");
-        } else if (getWifiDisconnectReason() == 5) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "AP - Too Many Clients");
-        } else if (getWifiDisconnectReason() == 6) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "NOT_AUTHED");
-        } else if (getWifiDisconnectReason() == 7) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "NOT_ASSOCED");
-        } else if (getWifiDisconnectReason() == 8) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Disassociated");
-        } else if (getWifiDisconnectReason() == 9) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "ASSOC_NOT_AUTHED");
-        } else if (getWifiDisconnectReason() == 10) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "DISASSOC_PWRCAP_BAD");
-        } else if (getWifiDisconnectReason() == 11) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "DISASSOC_SUPCHAN_BAD");
-        } else if (getWifiDisconnectReason() == 13) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "IE_INVALID");
-        } else if (getWifiDisconnectReason() == 14) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "MIC_FAILURE");
-        } else if (getWifiDisconnectReason() == 15) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "AP Handshake Timeout");
-        } else if (getWifiDisconnectReason() == 16) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "GROUP_KEY_UPDATE_TIMEOUT");
-        } else if (getWifiDisconnectReason() == 17) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "IE_IN_4WAY_DIFFERS");
-        } else if (getWifiDisconnectReason() == 18) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Invalid Group Cipher");
-        } else if (getWifiDisconnectReason() == 19) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Invalid Pairwise Cipher");
-        } else if (getWifiDisconnectReason() == 20) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "AKMP_INVALID");
-        } else if (getWifiDisconnectReason() == 21) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "UNSUPP_RSN_IE_VERSION");
-        } else if (getWifiDisconnectReason() == 22) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "INVALID_RSN_IE_CAP");
-        } else if (getWifiDisconnectReason() == 23) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "802_1X_AUTH_FAILED");
-        } else if (getWifiDisconnectReason() == 24) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "CIPHER_SUITE_REJECTED");
-        } else if (getWifiDisconnectReason() == 200) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "BEACON_TIMEOUT");
-        } else if (getWifiDisconnectReason() == 201) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "AP Not Found");
-        } else if (getWifiDisconnectReason() == 202) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "AUTH_FAIL");
-        } else if (getWifiDisconnectReason() == 203) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "ASSOC_FAIL");
-        } else if (getWifiDisconnectReason() == 204) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "HANDSHAKE_TIMEOUT");
-        } else if (getWifiDisconnectReason() == 205) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Connection Failed");
-        } else {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Unknown Status");
-        }
-    }
-
-    if (isSoftAPForced()) {
-        if ((millis() / 10000) % 2) {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "SSID: meshtasticAdmin");
-        } else {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "PWD: 12345678");
-        }
-
-    } else {
-        if (config.wifi.ap_mode) {
-            if ((millis() / 10000) % 2) {
-                display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "SSID: " + String(wifiName));
-            } else {
-                display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "PWD: " + String(wifiPsw));
-            }
-        } else {
-            display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "SSID: " + String(wifiName));
-        }
-    }
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 3, "http://meshtastic.local");
-
-    /* Display a heartbeat pixel that blinks every time the frame is redrawn */
-#ifdef SHOW_REDRAWS
-    if (heartbeat)
-        display->setPixel(0, 0);
-    heartbeat = !heartbeat;
-#endif
-#endif
-}
-
-void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-    displayedNodeNum = 0; // Not currently showing a node pane
-
-    display->setFont(FONT_SMALL);
-
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    char batStr[20];
-    if (powerStatus->getHasBattery()) {
-        int batV = powerStatus->getBatteryVoltageMv() / 1000;
-        int batCv = (powerStatus->getBatteryVoltageMv() % 1000) / 10;
-
-        snprintf(batStr, sizeof(batStr), "B %01d.%02dV %3d%% %c%c", batV, batCv, powerStatus->getBatteryChargePercent(),
-                 powerStatus->getIsCharging() ? '+' : ' ', powerStatus->getHasUSB() ? 'U' : ' ');
-
-        // Line 1
-        display->drawString(x, y, batStr);
-    } else {
-        // Line 1
-        display->drawString(x, y, String("USB"));
-    }
-
-    auto mode = "";
-
-    switch (config.lora.modem_preset) {
-    case Config_LoRaConfig_ModemPreset_ShortSlow:
-        mode = "ShortSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_ShortFast:
-        mode = "ShortFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidSlow:
-        mode = "MediumSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidFast:
-        mode = "MediumFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongFast:
-        mode = "LongFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongSlow:
-        mode = "LongSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_VLongSlow:
-        mode = "VLongSlow";
-        break;
-    default:
-        mode = "Custom";
-        break;
-    }
-
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode), y, mode);
-
-    // Line 2
-    uint32_t currentMillis = millis();
-    uint32_t seconds = currentMillis / 1000;
-    uint32_t minutes = seconds / 60;
-    uint32_t hours = minutes / 60;
-    uint32_t days = hours / 24;
-    // currentMillis %= 1000;
-    // seconds %= 60;
-    // minutes %= 60;
-    // hours %= 24;
-
-    // Show uptime as days, hours, minutes OR seconds
-    String uptime;
-    if (days >= 2)
-        uptime += String(days) + "d ";
-    else if (hours >= 2)
-        uptime += String(hours) + "h ";
-    else if (minutes >= 1)
-        uptime += String(minutes) + "m ";
-    else
-        uptime += String(seconds) + "s ";
-
-    uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
-    if (rtc_sec > 0) {
-        long hms = rtc_sec % SEC_PER_DAY;
-        // hms += tz.tz_dsttime * SEC_PER_HOUR;
-        // hms -= tz.tz_minuteswest * SEC_PER_MIN;
-        // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
-        hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
-
-        // Tear apart hms into h:m:s
-        int hour = hms / SEC_PER_HOUR;
-        int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
-        int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
-
-        char timebuf[9];
-        snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
-        uptime += timebuf;
-    }
-
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 1, uptime);
-
-    // Display Channel Utilization
-    char chUtil[13];
-    sprintf(chUtil, "ChUtil %2.0f%%", airTime->channelUtilizationPercent());
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(chUtil), y + FONT_HEIGHT_SMALL * 1, chUtil);
-
-    // Line 3
-    if (config.display.gps_format !=
-        Config_DisplayConfig_GpsCoordinateFormat_GpsFormatDMS) // if DMS then don't draw altitude
-        drawGPSAltitude(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
-
-    // Line 4
-    drawGPScoordinates(display, x, y + FONT_HEIGHT_SMALL * 3, gpsStatus);
-
-    /* Display a heartbeat pixel that blinks every time the frame is redrawn */
-#ifdef SHOW_REDRAWS
-    if (heartbeat)
-        display->setPixel(0, 0);
-    heartbeat = !heartbeat;
-#endif
-}
 // adjust Brightness cycle trough 1 to 254 as long as attachDuringLongPress is true
 void Screen::adjustBrightness()
 {

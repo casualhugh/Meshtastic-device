@@ -46,8 +46,10 @@
 
 */
 
-#define RXD2 16
-#define TXD2 17
+#define RXD2 -1
+#define TXD2 -1
+// #define RXD2 16
+// #define TXD2 17
 #define RX_BUFFER 128
 #define STRING_MAX Constants_DATA_PAYLOAD_LEN
 #define TIMEOUT 250
@@ -81,7 +83,7 @@ int32_t SerialModule::runOnce()
     // moduleConfig.serial.txd = 15;
     // moduleConfig.serial.timeout = 1000;
     // moduleConfig.serial.echo = 1;
-
+    #ifdef USESERIALMODULE
     if (moduleConfig.serial.enabled) {
 
         if (firstTime) {
@@ -183,6 +185,7 @@ int32_t SerialModule::runOnce()
 #else
     return INT32_MAX;
 #endif
+#endif
 }
 
 MeshPacket *SerialModuleRadio::allocReply()
@@ -214,8 +217,8 @@ ProcessMessage SerialModuleRadio::handleReceived(const MeshPacket &mp)
     if (moduleConfig.serial.enabled) {
 
         auto &p = mp.decoded;
-        // DEBUG_MSG("Received text msg self=0x%0x, from=0x%0x, to=0x%0x, id=%d, msg=%.*s\n",
-        //          nodeDB.getNodeNum(), mp.from, mp.to, mp.id, p.payload.size, p.payload.bytes);
+        DEBUG_MSG("Received text msg self=0x%0x, from=0x%0x, to=0x%0x, id=%d, msg=%.*s\n",
+                 nodeDB.getNodeNum(), mp.from, mp.to, mp.id, p.payload.size, p.payload.bytes);
 
         if (getFrom(&mp) == nodeDB.getNodeNum()) {
 
@@ -229,7 +232,7 @@ ProcessMessage SerialModuleRadio::handleReceived(const MeshPacket &mp)
                 //   TODO: need to find out why.
                 if (lastRxID != mp.id) {
                     lastRxID = mp.id;
-                    // DEBUG_MSG("* * Message came this device\n");
+                    DEBUG_MSG("* * Message came this device\n");
                     // Serial2.println("* * Message came this device");
                     Serial2.printf("%s", p.payload.bytes);
                 }
@@ -239,7 +242,7 @@ ProcessMessage SerialModuleRadio::handleReceived(const MeshPacket &mp)
 
             if (moduleConfig.serial.mode == ModuleConfig_SerialConfig_Serial_Mode_MODE_Default ||
                 moduleConfig.serial.mode == ModuleConfig_SerialConfig_Serial_Mode_MODE_SIMPLE) {
-                // DEBUG_MSG("* * Message came from the mesh\n");
+                DEBUG_MSG("* * Message came from the mesh\n");
                 // Serial2.println("* * Message came from the mesh");
                 Serial2.printf("%s", p.payload.bytes);
 
