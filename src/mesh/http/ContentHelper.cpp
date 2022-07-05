@@ -1,3 +1,5 @@
+
+#include "configuration.h"
 #ifdef WANT_WIFI
 #include "mesh/http/ContentHelper.h"
 //#include <Arduino.h>

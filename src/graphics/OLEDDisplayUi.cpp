@@ -148,7 +148,7 @@ void OLEDDisplayUi::runLoadingProcess(LoadingStage* stages, uint8_t stagesCount)
   this->loadingDrawFunction(this->display, &stages[stagesCount-1], progress);
   display->display();
 
-  delay(150);
+  // delay(150);
 }
 
 // -/----- Manual control -----\-

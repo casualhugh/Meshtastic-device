@@ -5,7 +5,7 @@
 #include "GPS.h"
 #include "Periodic.h"
 #ifdef WANT_WIFI
-    #include "MeshBluetoothService.h"
+    //#include "MeshBluetoothService.h"
 
 
     #include "BluetoothCommon.h" // needed for updateBatteryLevel, FIXME, eventually when we pull mesh out into a lib we shouldn't be whacking bluetooth from here

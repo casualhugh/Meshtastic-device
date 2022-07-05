@@ -19,7 +19,7 @@
 
 #ifndef NO_ESP32
 #ifdef WANT_WIFI
-//#include "mesh/http/WiFiAPClient.h"
+#include "mesh/http/WiFiAPClient.h"
 #endif
 #include "modules/esp32/StoreForwardModule.h"
 #include <Preferences.h>

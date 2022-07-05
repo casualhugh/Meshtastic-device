@@ -1,6 +1,7 @@
-#ifdef WANT_WIFI
-#pragma once
 
+#pragma once
+#include "configuration.h"
+#ifdef WANT_WIFI
 #include "PhoneAPI.h"
 #include "OSThread.h"
 #include <Arduino.h>

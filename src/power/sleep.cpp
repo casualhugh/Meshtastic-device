@@ -11,7 +11,9 @@
 #ifndef NO_ESP32
 #include "esp32/pm.h"
 #include "esp_pm.h"
-//#include "mesh/http/WiFiAPClient.h"
+#ifdef WANT_WIFI
+#include "mesh/http/WiFiAPClient.h"
+#endif
 #include "rom/rtc.h"
 #include <driver/rtc_io.h>
 #include <driver/uart.h>
@@ -43,22 +45,22 @@ RTC_DATA_ATTR int bootCount = 0;
 void setCPUFast(bool on)
 {
 #ifndef NO_ESP32
-
-    // if (isWifiAvailable()) {
-    //     /*
-    //      *
-    //      * There's a newly introduced bug in the espressif framework where WiFi is
-    //      *   unstable when the frequency is less than 240mhz.
-    //      *
-    //      *   This mostly impacts WiFi AP mode but we'll bump the frequency for
-    //      *     all WiFi use cases.
-    //      * (Added: Dec 23, 2021 by Jm Casler)
-    //      */
-    //     DEBUG_MSG("Setting CPU to 240mhz because WiFi is in use.\n");
-    //     setCpuFrequencyMhz(240);
-    //     return;
-    // }
-
+#ifdef WANT_WIFI
+    if (isWifiAvailable()) {
+        /*
+         *
+         * There's a newly introduced bug in the espressif framework where WiFi is
+         *   unstable when the frequency is less than 240mhz.
+         *
+         *   This mostly impacts WiFi AP mode but we'll bump the frequency for
+         *     all WiFi use cases.
+         * (Added: Dec 23, 2021 by Jm Casler)
+         */
+        DEBUG_MSG("Setting CPU to 240mhz because WiFi is in use.\n");
+        setCpuFrequencyMhz(240);
+        return;
+    }
+#endif
 // The Heltec LORA32 V1 runs at 26 MHz base frequency and doesn't react well to switching to 80 MHz...
 #ifndef ARDUINO_HELTEC_WIFI_LORA_32
     setCpuFrequencyMhz(on ? 240 : 80);

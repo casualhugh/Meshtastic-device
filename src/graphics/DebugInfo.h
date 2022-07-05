@@ -20,8 +20,11 @@ class DebugInfo
     /// Renders the debug screen.
     void drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
     void drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
-    void drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
-
+    //void drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    void drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    void drawFrameSetting(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    
+    void drawFrameTestNode(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
     /// Protects all of internal state.
     concurrency::Lock lock;
 };

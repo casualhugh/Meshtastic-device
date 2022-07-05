@@ -1,3 +1,4 @@
+#include "configuration.h"
 #ifdef WANT_WIFI
 #include "mesh/http/WebServer.h"
 #include "NodeDB.h"

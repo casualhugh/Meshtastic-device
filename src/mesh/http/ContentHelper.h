@@ -1,3 +1,4 @@
+#include "configuration.h"
 #ifdef WANT_WIFI
 #include <Arduino.h>
 #include <functional>

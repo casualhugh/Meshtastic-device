@@ -146,7 +146,7 @@ static void nbEnter()
 
 static void darkEnter()
 {
-    // setBluetoothEnable(true);
+    setBluetoothEnable(true);
     screen->setOn(false);
 }
 
@@ -172,7 +172,7 @@ static void powerEnter()
         powerFSM.trigger(EVENT_POWER_DISCONNECTED);
     } else {
         screen->setOn(true);
-        // setBluetoothEnable(true);
+        setBluetoothEnable(true);
         screen->print("Powered...\n");
     }
 }
@@ -189,7 +189,7 @@ static void powerIdle()
 static void powerExit()
 {
     screen->setOn(true);
-    // setBluetoothEnable(true);
+    setBluetoothEnable(true);
     screen->print("Unpowered...\n");
 }
 
@@ -197,7 +197,7 @@ static void onEnter()
 {
     DEBUG_MSG("Enter state: ON\n");
     screen->setOn(true);
-    // setBluetoothEnable(true);
+    setBluetoothEnable(true);
 
     static uint32_t lastPingMs;
 
@@ -221,7 +221,7 @@ static void onIdle()
 
 static void screenPress()
 {
-    screen->onPress();
+    // screen->onPress();
 }
 
 static void bootEnter()

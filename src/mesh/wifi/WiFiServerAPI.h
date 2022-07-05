@@ -1,6 +1,6 @@
-#ifdef WANT_WIFI
 #pragma once
-
+#include "configuration.h"
+#ifdef WANT_WIFI
 #include "StreamAPI.h"
 #include <WiFi.h>
 

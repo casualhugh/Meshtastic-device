@@ -32,7 +32,6 @@ bool OLEDDisplay::allocateBuffer() {
 bool OLEDDisplay::init() {
   pinMode(PULLUP_LCD, OUTPUT);
   digitalWrite(PULLUP_LCD, HIGH);
-  delay(5);
   pinMode(SCREEN_BL, OUTPUT);
   
   ledcSetup(0, 5000, 8);
@@ -40,7 +39,6 @@ bool OLEDDisplay::init() {
   canvas->begin();
   canvas->fillScreen(BLACK);
   canvas->flush();
-  delay(1);
   
   //digitalWrite(SCREEN_BL, HIGH); 
   return true;
@@ -89,6 +87,11 @@ void OLEDDisplay::fillRect(int16_t xMove, int16_t yMove, int16_t width, int16_t 
 void OLEDDisplay::drawCircle(int16_t x0, int16_t y0, int16_t radius) {
     canvas->drawCircle(x0, y0, radius, BLACK);
 }
+
+void OLEDDisplay::drawArc(int16_t x, int16_t y, int16_t r1, int16_t r2, float start, float end){
+    canvas->fillArc(x, y, r1, r2, start, end, BLACK);
+}
+
 
 void OLEDDisplay::drawCircleQuads(int16_t x0, int16_t y0, int16_t radius, uint8_t quads) {
     //TODO

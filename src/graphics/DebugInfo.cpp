@@ -235,7 +235,7 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     // The coordinates define the left starting point of the text
     display->setTextAlignment(TEXT_ALIGN_CENTER);
 
-    char channelStr[20];
+    char channelStr[30];
     {
         concurrency::LockGuard guard(&lock);
         auto chName = channels.getPrimaryName();
@@ -252,11 +252,11 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     // Display GPS status
     drawGPS(display, x, y, gpsStatus);
 
-    // Draw the channel name
-    display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), channelStr);
-    // Draw our hardware ID to assist with bluetooth pairing
-    display->drawFastImage(x + SCREEN_WIDTH - (10) - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), 8, 8, imgInfo);
-    display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL * 3 + (SCREEN_HEIGHT/2), ourId);
+    // // Draw the channel name
+    // display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), channelStr);
+    // // Draw our hardware ID to assist with bluetooth pairing
+    // display->drawFastImage(x + SCREEN_WIDTH - (10) - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), 8, 8, imgInfo);
+    // display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL * 3 + (SCREEN_HEIGHT/2), ourId);
 
     // Draw any log messages
     //display->drawLogBuffer(x, y + (FONT_HEIGHT_SMALL * 2));
@@ -380,4 +380,235 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     heartbeat = !heartbeat;
 #endif
 }
+
+
+void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    
+    char batStr[20];
+    if (powerStatus->getHasBattery()) {
+        int batV = powerStatus->getBatteryVoltageMv() / 1000;
+        int batCv = (powerStatus->getBatteryVoltageMv() % 1000) / 10;
+
+        snprintf(batStr, sizeof(batStr), "Bat %01d.%02dV %3d%% %c%c", batV, batCv, powerStatus->getBatteryChargePercent(),
+                 powerStatus->getIsCharging() ? '+' : ' ', powerStatus->getHasUSB() ? 'U' : ' ');
+    } else {
+        snprintf(batStr, sizeof(batStr), "USB");
+    }
+
+
+    char channelStr[40];
+    {
+        concurrency::LockGuard guard(&lock);
+        auto chName = channels.getPrimaryName();
+        snprintf(channelStr, sizeof(channelStr), "%s - %dms - %2.0f%%", chName, airTime->airtimeLastPeriod(TX_LOG), airTime->channelUtilizationPercent());
+    }
+
+    char usersString[20];
+    sprintf(usersString, "Nodes: %d/%d", nodeStatus->getNumOnline(), nodeStatus->getNumTotal());
+    uint32_t currentMillis = millis();
+    uint32_t seconds = currentMillis / 1000;
+    uint32_t minutes = seconds / 60;
+    uint32_t hours = minutes / 60;
+    uint32_t days = hours / 24;
+    char uptime_letter;
+    uint32_t uptime_number = days;
+    if (days >= 2){
+        uptime_number = days;
+        uptime_letter = 'd';
+    } else if (hours >= 2){
+        uptime_number = hours;
+        uptime_letter = 'h';
+    } else if (minutes >= 1){
+        uptime_number = minutes;
+        uptime_letter = 'm';
+    } else{
+        uptime_number = seconds;
+        uptime_letter = 's';    
+    }
+    char uptimebuf[20];
+
+    // uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
+    // if (rtc_sec > 0) {
+    //     long hms = rtc_sec % SEC_PER_DAY;
+    //     // hms += tz.tz_dsttime * SEC_PER_HOUR;
+    //     // hms -= tz.tz_minuteswest * SEC_PER_MIN;
+    //     // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
+    //     hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
+
+    //     // Tear apart hms into h:m:s
+    //     int hour = hms / SEC_PER_HOUR;
+    //     int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
+    //     int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
+
+    //     char timebuf[9];
+    //     snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
+    //     uptime += timebuf;
+    // }
+    snprintf(uptimebuf, sizeof(uptimebuf), "%02d %c", uptime_number, uptime_letter);
+
+    char gpsStatbuf[10];
+    char posbuf[20];
+    if (!gpsStatus->getIsConnected()) {
+        snprintf(gpsStatbuf, sizeof(gpsStatbuf), "%s", "No GPS");
+    }
+    //display->drawFastImage(x, y, 6, 8, gps->getHasLock() ? imgPositionSolid : imgPositionEmpty);
+    if (!gpsStatus->getHasLock()) {
+        snprintf(gpsStatbuf, sizeof(gpsStatbuf), "%s", "No sats");
+        sprintf(posbuf, "%s", "No Position");
+    } else {
+        uint8_t bar[2] = {0};
+
+        // Draw DOP signal bars
+        for (int i = 0; i < 5; i++) {
+            if (gpsStatus->getDOP() <= dopThresholds[i])
+                bar[0] = ~((1 << (5 - i)) - 1);
+            else
+                bar[0] = 0b10000000;
+             bar[1] = bar[0];
+            display->drawFastImage(x + SCREEN_WIDTH/2 - 10, y + 15, 2, 8, bar);
+        }
+
+        // Draw satellite image
+        display->drawFastImage(x + SCREEN_WIDTH/2,  y + 30, 8, 8, imgSatellite);
+
+        // Draw the number of satellites
+        sprintf(gpsStatbuf, "Sats: %u", gpsStatus->getNumSatellites());
+        sprintf(posbuf, "%f, %f", geoCoord.getLatitude() * 1e-7, geoCoord.getLongitude() * 1e-7);
+    }
+
+    int lines = 7;
+    char *to_display[] = {
+        batStr,
+        channelStr,
+        usersString,
+        uptimebuf,
+        gpsStatbuf,
+        posbuf,
+        "Heading: 200"
+    };
+    int center = SCREEN_WIDTH/2;
+    int height = y + SCREEN_HEIGHT/2 - (lines * 5);
+    for (int line = 0; line < lines; line++){
+        if (0 < height && height < SCREEN_HEIGHT){
+            display->drawString(center, height, String(to_display[line]));
+        }
+        height += 10;
+    }
 }
+
+
+void DebugInfo::drawFrameSetting(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    int lines = 7;
+    char channelStr[30];
+    {
+        concurrency::LockGuard guard(&lock);
+        auto chName = channels.getPrimaryName();
+        snprintf(channelStr, sizeof(channelStr), "%s", chName);
+    }
+    auto mode = "";
+
+    switch (config.lora.modem_preset) {
+    case Config_LoRaConfig_ModemPreset_ShortSlow:
+        mode = "SSlow";
+        break;
+    case Config_LoRaConfig_ModemPreset_ShortFast:
+        mode = "SFast";
+        break;
+    case Config_LoRaConfig_ModemPreset_MidSlow:
+        mode = "MSlow";
+        break;
+    case Config_LoRaConfig_ModemPreset_MidFast:
+        mode = "MFast";
+        break;
+    case Config_LoRaConfig_ModemPreset_LongFast:
+        mode = "LFast";
+        break;
+    case Config_LoRaConfig_ModemPreset_LongSlow:
+        mode = "LSlow";
+        break;
+    case Config_LoRaConfig_ModemPreset_VLongSlow:
+        mode = "VLSlow";
+        break;
+    default:
+        mode = "Custom";
+        break;
+    }
+
+    char *to_display[] = {
+        channelStr,
+        "mode",
+        "Long name",
+        "Short name",
+        "Canned msgs",
+        "Enable features",
+        "Turn off"
+    };
+    int selected = 3;
+    int center = SCREEN_WIDTH/2;
+    for (int line = 0; line < lines; line++){
+        if (line == selected){
+            display->setFont(FONT_MEDIUM);
+        } else {
+            display->setFont(FONT_SMALL);
+        }
+        int height = y + SCREEN_HEIGHT/2 + (line - selected) * 20;
+        if (0 < height && height < SCREEN_HEIGHT){
+          display->drawString(center, height, String(to_display[line]));
+        }
+    }
+}
+
+void DebugInfo::drawFrameTestNode(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    int lines = 4;
+    char *to_display[] = {
+        "Name here",
+        "20m",
+        "60 seconds ago",
+        "-5dB - NNE - 200"
+    };
+    int center = SCREEN_WIDTH/2;
+    for (int line = 0; line < lines; line++){
+        if (line == 0 || line == 1){
+            display->setFont(FONT_MEDIUM);
+        } else {
+            display->setFont(FONT_SMALL);
+        }
+        int height = y + SCREEN_HEIGHT/2 + (line - 1) * 20;
+        if (0 < height && height < SCREEN_HEIGHT){
+          display->drawString(center, height, String(to_display[line]));
+        }
+    }
+    uint16_t degree = 360 - 200;
+    uint16_t radius = 110;
+    uint16_t thickness = 10;
+    uint16_t width = 5;
+    /*
+    if (distance <= 20){
+        thickness = -5.33 * distance + 116.66;
+        if (thickness > 90){
+            thickness = 180;
+        }
+    } 
+    */ 
+    
+    display->drawArc(SCREEN_WIDTH/2, 
+                    SCREEN_HEIGHT/2, 
+                    radius - thickness /2 , 
+                    radius + thickness /2, 
+                    degree - width, 
+                    degree + width);
+    
+}
+
+
+}
+

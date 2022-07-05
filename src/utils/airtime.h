@@ -57,7 +57,7 @@ class AirTime : private concurrency::OSThread
     uint32_t getSecondsPerPeriod();
     uint32_t getSecondsSinceBoot();
     uint32_t *airtimeReport(reportTypes reportType);
-
+    uint32_t airtimeLastPeriod(reportTypes reportType);
   private:
     bool firstTime = true;
     uint8_t lastUtilPeriod = 0;

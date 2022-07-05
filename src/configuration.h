@@ -57,7 +57,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Standard definitions for ESP32 targets
 //
-
 #define HAS_WIFI
 #define PIN_GPS_WAKE 27//forceon
 #define GPS_SERIAL_NUM 1
@@ -67,7 +66,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #define GPS_TX_PIN 17
 #endif
-
+//#define WANT_WIFI
 // -----------------------------------------------------------------------------
 // LoRa SPI
 // -----------------------------------------------------------------------------
@@ -86,7 +85,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // -----------------------------------------------------------------------------
 
 // Disable use of the NTP library and related features
-//#define DISABLE_NTP
+#define DISABLE_NTP
 
 // Disable the welcome screen and allow 
 #define DISABLE_WELCOME_UNSET

@@ -5,14 +5,17 @@
 #include "graphics/Screen.h"
 #include "power.h"
 #include <OneButton.h>
-
-enum{
-    SINGLE_PRESS = 1,
-    LONG_PRESS = 2,
-    ALT_PRESS = 3,
-    UP = 4,
-    DOWN = 5
-};
+// enum {
+//     PRESS_UP = 1,
+//     PRESS_DOWN = 2
+// };
+// enum{
+//     SINGLE_PRESS = 1,
+//     LONG_PRESS = 2,
+//     ALT_PRESS = 3,
+//     UP = 4,
+//     DOWN = 5
+// };
 
 namespace concurrency
 {
@@ -95,6 +98,7 @@ class ButtonThread : public concurrency::OSThread
     static void button1Pressed()
     {
         DEBUG_MSG("press 1 !\n");
+        screen->onPress(PRESS_UP, SINGLE_PRESS);
         // #ifdef BUTTON_PIN
         //         if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
         //             !moduleConfig.canned_message.enabled) {
@@ -108,6 +112,7 @@ class ButtonThread : public concurrency::OSThread
     {
         DEBUG_MSG("Long press 1 !\n");
         // buttonThread->updateButtonStatus(1, LONG_PRESS);
+        screen->onPress(PRESS_UP, LONG_PRESS);
         screen->adjustBrightness();
         // // If user button is held down for 5 seconds, shutdown the device.
         // if ((millis() - longPressTime > 5 * 1000) && (longPressTime > 0)) {
@@ -154,7 +159,7 @@ class ButtonThread : public concurrency::OSThread
     static void button2Pressed()
     {
         DEBUG_MSG("press 2!\n");
-        screen->onPress();
+        screen->onPress(PRESS_DOWN, SINGLE_PRESS);
         // #ifdef BUTTON_PIN
         //         if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
         //             !moduleConfig.canned_message.enabled) {
@@ -174,6 +179,7 @@ class ButtonThread : public concurrency::OSThread
 
     static void button2DoublePressed()
     {
+        screen->onPress(PRESS_DOWN, LONG_PRESS);
         // Doesnt do anything lol disablePin();
         // buttonThread->updateButtonStatus(1, ALT_PRESS);
         

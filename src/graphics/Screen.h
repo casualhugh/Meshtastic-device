@@ -9,7 +9,7 @@ class Screen
 {
   public:
     Screen(char){}
-    void onPress() {}
+     void onPress(uint8_t dir, uint8_t press_type) {}
     void setup() {}
     void setOn(bool) {}
     void print(const char*){}
@@ -43,6 +43,19 @@ class Screen
 #define BRIGHTNESS_DEFAULT 150
 #endif
 #include "DebugInfo.h"
+
+enum {
+    PRESS_UP = 1,
+    PRESS_DOWN = 2
+};
+enum{
+    SINGLE_PRESS = 1,
+    LONG_PRESS = 2,
+    ALT_PRESS = 3,
+    UP = 4,
+    DOWN = 5
+};
+
 namespace graphics
 {
 
@@ -124,8 +137,22 @@ class Screen : public concurrency::OSThread
     void blink();
 
     /// Handles a button press.
-    void onPress() { enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS}); }
-
+    void onPress(uint8_t dir, uint8_t press_type) { 
+        if (dir == PRESS_UP){
+            if (press_type == SINGLE_PRESS){
+                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_UP_SINGLE}); 
+            } else {
+                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_UP_LONG}); 
+            }
+        } else {
+            if (press_type == SINGLE_PRESS){
+                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_DOWN_SINGLE}); 
+            } else {
+                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_DOWN_LONG}); 
+            }
+        } 
+    }
+    
     // Implementation to Adjust Brightness
     void adjustBrightness();
     uint8_t brightness = BRIGHTNESS_DEFAULT;
@@ -265,6 +292,7 @@ class Screen : public concurrency::OSThread
     // Implementations of various commands, called from doTask().
     void handleSetOn(bool on);
     void handleOnPress();
+    void handleLongPress(uint8_t dir);
     void handleStartBluetoothPinScreen(uint32_t pin);
     void handlePrint(const char *text);
     void handleStartFirmwareUpdateScreen();
@@ -279,6 +307,9 @@ class Screen : public concurrency::OSThread
     static void drawDebugInfoTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 
     static void drawDebugInfoSettingsTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    static void drawInfoTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    static void drawSettingTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    static void drawFakeNodeTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 
     static void drawDebugInfoWiFiTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 

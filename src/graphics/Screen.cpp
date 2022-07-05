@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "sleep.h"
 #include "target_specific.h"
 #include "utils.h"
-
+#include "TinyGPS++.h"
 #ifndef NO_ESP32
 #include "esp_task_wdt.h"
 #ifdef WANT_WIFI
@@ -554,8 +554,9 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
 
     // The coordinates define the left starting point of the text
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-
-    const char *username = node->has_user ? node->user.long_name : "Unknown Name";
+    const char* user = node->has_user ? node->user.long_name : "Unknown Name";
+    char username[40];
+    sprintf(username, "%s", user); 
 
     static char signalStr[20];
     snprintf(signalStr, sizeof(signalStr), "Signal: %d%%", clamp((int)((node->snr + 10) * 5), 0, 100));
@@ -567,7 +568,6 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     else if (agoSecs < 120 * 60) // last 2 hrs
         snprintf(lastStr, sizeof(lastStr), "%u minutes ago", agoSecs / 60);
     else {
-
         uint32_t hours_in_month = 730;
 
         // Only show hours ago if it's been less than 6 months. Otherwise, we may have bad
@@ -575,23 +575,21 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
         if ((agoSecs / 60 / 60) < (hours_in_month * 6)) {
             snprintf(lastStr, sizeof(lastStr), "%u hours ago", agoSecs / 60 / 60);
         } else {
-            snprintf(lastStr, sizeof(lastStr), "unknown age");
+            snprintf(lastStr, sizeof(lastStr), "A long time ago");
         }
     }
 
     static char distStr[20];
     strcpy(distStr, "? km"); // might not have location data
     NodeInfo *ourNode = nodeDB.getNode(nodeDB.getNodeNum());
-    const char *fields[] = {username, distStr, signalStr, lastStr, NULL};
 
     // coordinates for the center of the compass/circle
-    int16_t compassX = x + SCREEN_WIDTH - COMPASS_DIAM / 2 - 5, compassY = y + SCREEN_HEIGHT / 2;
     bool hasNodeHeading = false;
-
+    float bearingToOther = -1;
+    float headingRadian = -1;
     if (ourNode && hasPosition(ourNode)) {
         Position &op = ourNode->position;
         float myHeading = estimatedHeading(DegD(op.latitude_i), DegD(op.longitude_i));
-        drawCompassHeading(display, compassX, compassY, myHeading);
 
         if (hasPosition(node)) {
             // display direction toward node
@@ -606,21 +604,62 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
 
             // FIXME, also keep the guess at the operators heading and add/substract
             // it.  currently we don't do this and instead draw north up only.
-            float bearingToOther =
+            bearingToOther =
                 GeoCoord::bearing(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            float headingRadian = bearingToOther - myHeading;
-            drawNodeHeading(display, compassX, compassY, headingRadian);
+            headingRadian = bearingToOther - myHeading;
         }
     }
-    if (!hasNodeHeading)
-        // direction to node is unknown so display question mark
-        // Debug info for gps lock errors
-        // DEBUG_MSG("ourNode %d, ourPos %d, theirPos %d\n", !!ourNode, ourNode && hasPosition(ourNode), hasPosition(node));
-        display->drawString(compassX - FONT_HEIGHT_SMALL / 4, compassY - FONT_HEIGHT_SMALL / 2, "?");
-    display->drawCircle(compassX, compassY, COMPASS_DIAM / 2);
+    char headingbuf[12]; 
+    if (!hasNodeHeading){
+        sprintf(headingbuf, "%s - %d", TinyGPSPlus::cardinal(headingRadian), (int)headingRadian);
+    } else {
+        sprintf(headingbuf, "No heading");
+    }
 
-    // Must be after distStr is populated
-    drawColumns(display, x, y, fields);
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    int lines = 5;
+    char *to_display[] = {
+        username,
+        distStr,
+        lastStr,
+        signalStr,
+        headingbuf
+    };
+    int center = SCREEN_WIDTH/2;
+    for (int line = 0; line < lines; line++){
+        if (line == 0 || line == 1){
+            display->setFont(FONT_MEDIUM);
+        } else {
+            display->setFont(FONT_SMALL);
+        }
+        int height = y + SCREEN_HEIGHT/2 + (line - 1) * 20;
+        if (0 < height && height < SCREEN_HEIGHT){
+          display->drawString(center, height, String(to_display[line]));
+        }
+    }
+    uint16_t degree = RAD_TO_DEG * headingRadian;
+    uint16_t radius = 110;
+    uint16_t thickness = 10;
+    uint16_t width = 5;
+    /*
+    if (distance <= 20){
+        thickness = -5.33 * distance + 116.66;
+        if (thickness > 90){
+            thickness = 180;
+        }
+    } 
+    */ 
+    if (state->frameState == IN_TRANSITION){
+       float progress = (float) 10 * state->ticksSinceLastStateSwitch / (500.0 / 33.0);
+       width = (int) progress;
+    }
+    display->drawArc(SCREEN_WIDTH/2, 
+                        SCREEN_HEIGHT/2, 
+                        radius - thickness /2 , 
+                        radius + thickness /2, 
+                        degree - width, 
+                        degree + width);
 }
 
 #if 0
@@ -814,7 +853,20 @@ int32_t Screen::runOnce()
         case Cmd::SET_OFF:
             handleSetOn(false);
             break;
-        case Cmd::ON_PRESS:
+        case Cmd::ON_PRESS_UP_SINGLE:
+            ui.setFrameAnimation(SLIDE_DOWN);
+            handleOnPress();
+            break;
+        case Cmd::ON_PRESS_DOWN_SINGLE:
+            ui.setFrameAnimation(SLIDE_UP);
+            handleOnPress();
+            break;
+        case Cmd::ON_PRESS_UP_LONG:
+            ui.setFrameAnimation(SLIDE_DOWN);
+            handleOnPress();
+            break;
+        case Cmd::ON_PRESS_DOWN_LONG:
+            ui.setFrameAnimation(SLIDE_UP);
             handleOnPress();
             break;
         case Cmd::START_BLUETOOTH_PIN_SCREEN:
@@ -896,10 +948,29 @@ void Screen::drawDebugInfoSettingsTrampoline(OLEDDisplay *display, OLEDDisplayUi
     screen2->debugInfo.drawFrameSettings(display, state, x, y);
 }
 
-void Screen::drawDebugInfoWiFiTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+void Screen::drawInfoTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
     Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
-    screen2->debugInfo.drawFrameWiFi(display, state, x, y);
+    screen2->debugInfo.drawFrameInfo(display, state, x, y);
+}
+
+void Screen::drawSettingTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
+    screen2->debugInfo.drawFrameSetting(display, state, x, y);
+}
+
+void Screen::drawFakeNodeTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
+    screen2->debugInfo.drawFrameTestNode(display, state, x, y);
+}
+
+
+void Screen::drawDebugInfoWiFiTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    //Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
+    //screen2->debugInfo.drawFrameWiFi(display, state, x, y);
 }
 
 /* show a message that the SSL cert is being built
@@ -977,16 +1048,20 @@ void Screen::setFrames()
     //
     // Since frames are basic function pointers, we have to use a helper to
     // call a method on debugInfo object.
-    normalFrames[numframes++] = &Screen::drawDebugInfoTrampoline;
+    //normalFrames[numframes++] = &Screen::drawDebugInfoTrampoline;
 
     // call a method on debugInfoScreen object (for more details)
-    normalFrames[numframes++] = &Screen::drawDebugInfoSettingsTrampoline;
-
+    //normalFrames[numframes++] = &Screen::drawDebugInfoSettingsTrampoline;
+    normalFrames[numframes++] = &Screen::drawInfoTrampoline;
+    normalFrames[numframes++] = &Screen::drawSettingTrampoline;
+    normalFrames[numframes++] = &Screen::drawFakeNodeTrampoline;
     #ifndef NO_ESP32
-        // if (isWifiAvailable()) {
-        //     // call a method on debugInfoScreen object (for more details)
-        //     normalFrames[numframes++] = &Screen::drawDebugInfoWiFiTrampoline;
-        // }
+    #ifdef WANT_WIFI
+        if (isWifiAvailable()) {
+            // call a method on debugInfoScreen object (for more details)
+            normalFrames[numframes++] = &Screen::drawDebugInfoWiFiTrampoline;
+        }
+    #endif
     #endif
 
     DEBUG_MSG("Finished building frames. numframes: %d\n", numframes);
@@ -1076,6 +1151,11 @@ void Screen::handleOnPress()
         lastScreenTransition = millis();
         setFastFramerate();
     }
+}
+
+void Screen::handleLongPress(uint8_t dir)
+{
+    DEBUG_MSG("Would have long pressed");
 }
 
 #ifndef SCREEN_TRANSITION_FRAMERATE

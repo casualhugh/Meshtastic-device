@@ -29,6 +29,17 @@ void AirTime::logAirtime(reportTypes reportType, uint32_t airtime_ms)
     this->channelUtilization[this->getPeriodUtilMinute()] = channelUtilization[this->getPeriodUtilMinute()] + airtime_ms;
 }
 
+uint32_t AirTime::airtimeLastPeriod(reportTypes reportType){
+    if (reportType == TX_LOG) {
+        return this->airtimes.periodTX[airTime->currentPeriodIndex()];
+    } else if (reportType == RX_LOG) {
+        return this->airtimes.periodRX[airTime->currentPeriodIndex()];
+    } else if (reportType == RX_ALL_LOG) {
+        return this->airtimes.periodRX_ALL[airTime->currentPeriodIndex()];
+    }
+    return 0;
+}
+
 uint8_t AirTime::currentPeriodIndex()
 {
     return ((getSecondsSinceBoot() / SECONDS_PER_PERIOD) % PERIODS_TO_LOG);

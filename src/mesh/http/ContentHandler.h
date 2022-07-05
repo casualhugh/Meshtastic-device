@@ -1,6 +1,7 @@
-#ifdef WANT_WIFI
-#pragma once
 
+#pragma once
+#include "configuration.h"
+#ifdef WANT_WIFI
 
 void registerHandlers(HTTPServer *insecureServer, HTTPSServer *secureServer);
 

@@ -150,6 +150,14 @@ void setup()
     // meshtasticAdmin on the device.
     pinMode(BUTTON_PIN_2, INPUT);
 #endif
+
+    // BUTTON_PIN is pulled high by a 12k resistor.
+    #ifdef WANT_WIFI
+    if (!digitalRead(BUTTON_PIN)) {
+        forceSoftAP = 1;
+        DEBUG_MSG("Setting forceSoftAP = 1\n");
+    }
+    #endif
     OSThread::setup();
 
     fsInit();

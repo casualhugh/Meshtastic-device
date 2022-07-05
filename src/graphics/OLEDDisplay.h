@@ -88,6 +88,8 @@ class OLEDDisplay : public Print  {
 
     // Draw the border of a circle
     void drawCircle(int16_t x, int16_t y, int16_t radius);
+    
+    void drawArc(int16_t x, int16_t y, int16_t r1, int16_t r2, float start, float end);
 
     // Draw all Quadrants specified in the quads bit mask
     void drawCircleQuads(int16_t x0, int16_t y0, int16_t radius, uint8_t quads);

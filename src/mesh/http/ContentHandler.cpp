@@ -1,3 +1,4 @@
+#include "configuration.h"
 #ifdef WANT_WIFI
 #include "NodeDB.h"
 #include "PowerFSM.h"

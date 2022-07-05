@@ -118,7 +118,7 @@ void GPS::wake()
         //digitalWrite(PIN_GPS_WAKE, GPS_WAKE_ACTIVE);
         //pinMode(PIN_GPS_WAKE, OUTPUT);
     #endif
-    delay(10);
+    //delay(10);
     //ss.println("$PMTK353,1,1,1,0,0*2A");
 }
 

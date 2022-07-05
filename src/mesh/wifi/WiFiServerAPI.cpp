@@ -1,6 +1,7 @@
+#include "configuration.h"
 #ifdef WANT_WIFI
 #include "WiFiServerAPI.h"
-#include "configuration.h"
+
 #include <Arduino.h>
 
 static WiFiServerPort *apiPort;

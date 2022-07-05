@@ -1,7 +1,8 @@
+#include "configuration.h"
 #ifdef WANT_WIFI
 #ifdef USE_NEW_ESP32_BLUETOOTH
 
-#include "configuration.h"
+
 #include "ESP32Bluetooth.h"
 #include "BluetoothCommon.h"
 #include "PowerFSM.h"
