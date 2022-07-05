@@ -5,7 +5,7 @@
 
 #include <Arduino.h>
 
-//#include "Arduino_GFX_Library.h"
+#include "Arduino_GFX_Library.h"
 #define SCREEN_BL 26
 #define DC_PIN  14
 #define CS_PIN 5
@@ -38,21 +38,6 @@ enum OLEDDISPLAY_TEXT_ALIGNMENT {
   TEXT_ALIGN_CENTER = 2,
   TEXT_ALIGN_CENTER_BOTH = 3
 };
-
-
-enum OLEDDISPLAY_GEOMETRY {
-  GEOMETRY_128_64   = 0,
-  GEOMETRY_128_32   = 1,
-  GEOMETRY_64_48    = 2,
-  GEOMETRY_64_32    = 3,
-  GEOMETRY_RAWMODE  = 4
-};
-
-enum HW_I2C {
-  I2C_ONE,
-  I2C_TWO
-};
-
 typedef char (*FontTableLookupFunction)(const uint8_t ch);
 class OLEDDisplay : public Print  {
   public:
@@ -199,7 +184,7 @@ class OLEDDisplay : public Print  {
 
     // Mirror the display (to be used in a mirror or as a projector)
     void mirrorScreen();
-
+    
     // Write the buffer to the display memory
     virtual void display(void) = 0;
 
@@ -231,15 +216,9 @@ class OLEDDisplay : public Print  {
     #endif
 
   protected:
-
-    OLEDDISPLAY_GEOMETRY geometry;
-
     uint16_t  displayWidth;
     uint16_t  displayHeight;
     uint16_t  displayBufferSize;
-
-    // Set the correct height, width and buffer for the geometry
-    void setGeometry(OLEDDISPLAY_GEOMETRY g, uint16_t width = 0, uint16_t height = 0);
 
     OLEDDISPLAY_TEXT_ALIGNMENT   textAlignment;
     OLEDDISPLAY_COLOR            color;
@@ -255,10 +234,6 @@ class OLEDDisplay : public Print  {
 
     // Connect to the display
     virtual bool connect() { return false; };
-
-    // Send all the init commands
-    virtual void sendInitCommands();
-
     // converts utf8 characters to extended ascii
     char* utf8ascii(const String &s);
 
@@ -268,6 +243,7 @@ class OLEDDisplay : public Print  {
 
 	FontTableLookupFunction fontTableLookupFunction;
 };
-//extern Arduino_DataBus *bus;
-//extern Arduino_GFX *canvas;
+extern Arduino_DataBus *bus;
+extern Arduino_G *tft;
+extern Arduino_GFX *canvas;
 #endif

@@ -132,10 +132,10 @@ void setup()
     DEBUG_MSG("\n\n//\\ E S H T /\\ S T / C\n\n");
     initDeepSleep();
 
-#ifdef VEXT_ENABLE
-    pinMode(VEXT_ENABLE, OUTPUT);
-    digitalWrite(VEXT_ENABLE, 0); // turn on the display power
-#endif
+    #ifdef VEXT_ENABLE
+        pinMode(VEXT_ENABLE, OUTPUT);
+        digitalWrite(VEXT_ENABLE, 0); // turn on the display power
+    #endif
     #ifdef WANT_WIFI
     bool forceSoftAP = 0;
     #endif
@@ -198,8 +198,7 @@ void setup()
     readFromRTC(); // read the main CPU RTC at first (in case we can't get GPS time)
     
     Serial.println("init gps");
-    //gps = createGps();
-    gps = nullptr;
+    gps = createGps();
     if (gps)
         gpsStatus->observe(&gps->newStatus);
     else
@@ -253,9 +252,6 @@ void setup()
         webServerThread = new WebServerThread();
     #endif
     #endif
-    pinMode(5, OUTPUT);
-
-    digitalWrite(5, HIGH);
     
     
    

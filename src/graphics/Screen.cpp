@@ -130,8 +130,6 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
     snprintf(buf, sizeof(buf), "%s",
              xstr(APP_VERSION_SHORT)); // Note: we don't bother printing region or now, it makes the string too long
     display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2 + FONT_HEIGHT_MEDIUM, buf);
-    screen->forceDisplay();
-
     // FIXME - draw serial # somewhere?
 }
 
@@ -179,7 +177,6 @@ static void drawOEMIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDi
     snprintf(buf, sizeof(buf), "%s",
              xstr(APP_VERSION_SHORT)); // Note: we don't bother printing region or now, it makes the string too long
     display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, buf);
-    screen->forceDisplay();
 
     // FIXME - draw serial # somewhere?
 }
@@ -556,7 +553,7 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     const char *username = node->has_user ? node->user.long_name : "Unknown Name";
 
@@ -672,7 +669,7 @@ void Screen::handleSetOn(bool on)
         if (on) {
             DEBUG_MSG("Turning on screen\n");
             dispdev.displayOn();
-            dispdev.displayOn();
+            dispdev.setBrightness(brightness);
             enabled = true;
             setInterval(0); // Draw ASAP
             runASAP = true;
@@ -705,7 +702,7 @@ void Screen::setup()
     ui.setIndicatorPosition(BOTTOM);
     // Defines where the first frame is located in the bar.
     ui.setIndicatorDirection(LEFT_RIGHT);
-    ui.setFrameAnimation(SLIDE_LEFT);
+    ui.setFrameAnimation(SLIDE_UP);
     // Don't show the page swipe dots while in boot screen.
     ui.disableAllIndicators();
     // Store a pointer to Screen so we can get to it from static functions.
@@ -761,6 +758,7 @@ void Screen::setup()
 
 void Screen::forceDisplay()
 {
+    canvas->flush();
 }
 
 static uint32_t lastScreenTransition;
@@ -1107,11 +1105,11 @@ void Screen::adjustBrightness()
     if (brightness == 254) {
         brightness = 0;
     } else {
-        brightness++;
+        brightness += 10;
     }
-    int width = brightness / (254.00 / SCREEN_WIDTH);
-    dispdev.drawRect(0, 30, SCREEN_WIDTH, 4);
-    dispdev.fillRect(0, 31, width, 2);
+    int width = brightness / (254.00 / (SCREEN_WIDTH/2));
+    dispdev.drawRect(SCREEN_WIDTH/4, 30, SCREEN_WIDTH/2, 4);
+    dispdev.fillRect(SCREEN_WIDTH/4, 31, width, 2);
     dispdev.display();
     dispdev.setBrightness(brightness);
 }

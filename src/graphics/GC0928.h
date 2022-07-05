@@ -15,7 +15,7 @@ class GC0928 : public OLEDDisplay {
     }
 
     void display(void) {
-      
+        canvas->flush();
     }
 
 };

@@ -16,7 +16,7 @@ OLEDDisplayUi::OLEDDisplayUi(OLEDDisplay *display) {
   activeSymbol = ANIMATION_activeSymbol;
   inactiveSymbol = ANIMATION_inactiveSymbol;
   notifyingFrameOffsetAmplitude = 10;
-  frameAnimationDirection   = SLIDE_RIGHT;
+  frameAnimationDirection   = SLIDE_UP;
   lastTransitionDirection = 1;
   frameCount = 0;
   nextFrameNumber = -1;

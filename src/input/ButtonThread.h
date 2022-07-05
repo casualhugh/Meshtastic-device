@@ -108,7 +108,7 @@ class ButtonThread : public concurrency::OSThread
     {
         DEBUG_MSG("Long press 1 !\n");
         // buttonThread->updateButtonStatus(1, LONG_PRESS);
-        // screen->adjustBrightness();
+        screen->adjustBrightness();
         // // If user button is held down for 5 seconds, shutdown the device.
         // if ((millis() - longPressTime > 5 * 1000) && (longPressTime > 0)) {
 

@@ -256,10 +256,10 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), channelStr);
     // Draw our hardware ID to assist with bluetooth pairing
     display->drawFastImage(x + SCREEN_WIDTH - (10) - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT/2), 8, 8, imgInfo);
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL * 2 + (SCREEN_HEIGHT/2), ourId);
+    display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL * 3 + (SCREEN_HEIGHT/2), ourId);
 
     // Draw any log messages
-    display->drawLogBuffer(x, y + (FONT_HEIGHT_SMALL * 2));
+    //display->drawLogBuffer(x, y + (FONT_HEIGHT_SMALL * 2));
     
 }
 

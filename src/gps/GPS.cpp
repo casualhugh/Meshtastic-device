@@ -67,17 +67,17 @@ bool GPS::setupGPS()
 bool GPS::setup()
 {
     // Master power for the GPS
-#ifdef PIN_GPS_EN
-    digitalWrite(PIN_GPS_EN, 1);
-    pinMode(PIN_GPS_EN, OUTPUT);
-#endif
+    #ifdef PIN_GPS_EN
+        digitalWrite(PIN_GPS_EN, 1);
+        pinMode(PIN_GPS_EN, OUTPUT);
+    #endif
 
-#ifdef PIN_GPS_RESET
-    digitalWrite(PIN_GPS_RESET, 1); // assert for 10ms
-    pinMode(PIN_GPS_RESET, OUTPUT);
-    delay(10);
-    digitalWrite(PIN_GPS_RESET, 0);
-#endif
+    #ifdef PIN_GPS_RESET
+        digitalWrite(PIN_GPS_RESET, 1); // assert for 10ms
+        pinMode(PIN_GPS_RESET, OUTPUT);
+        delay(10);
+        digitalWrite(PIN_GPS_RESET, 0);
+    #endif
 
     setAwake(true); // Wake GPS power before doing any init
     bool ok = setupGPS();
