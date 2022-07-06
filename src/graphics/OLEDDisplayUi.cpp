@@ -30,6 +30,10 @@ OLEDDisplayUi::OLEDDisplayUi(OLEDDisplay *display) {
   state.frameState = FIXED;
   state.currentFrame = 0;
   state.frameTransitionDirection = 1;
+  state.currentIndex = 0;
+  state.currentSetting = -1;
+  state.maxIndex = 1;
+  state.select = false;
   state.isIndicatorDrawn = true;
   state.manualControl = false;
   state.userData = NULL;
@@ -172,6 +176,35 @@ void OLEDDisplayUi::previousFrame() {
   }
 }
 
+void OLEDDisplayUi::nextIndex() {
+  if (this->state.frameState == SELECTED) {
+    // For index select transitions (not yet implimented)
+    // this->state.manualControl = true;
+    // this->state.frameState = SELECT_TRANSITION;
+    this->state.ticksSinceLastStateSwitch = 0;
+    this->lastTransitionDirection = this->state.frameTransitionDirection;
+    this->state.frameTransitionDirection = 1;
+    this->state.currentIndex += 1;
+    if (this->state.currentIndex >= this->state.maxIndex) {
+      this->state.currentIndex = 0;
+    }
+  }
+}
+void OLEDDisplayUi::previousIndex() {
+  if (this->state.frameState == SELECTED) {
+    // For index select transitions (not yet implimented)
+    // this->state.manualControl = true;
+    // this->state.frameState = SELECT_TRANSITION;
+    this->state.ticksSinceLastStateSwitch = 0;
+    this->lastTransitionDirection = this->state.frameTransitionDirection;
+    this->state.frameTransitionDirection = -1;
+    this->state.currentIndex -= 1;
+    if (this->state.currentIndex < 0) {
+      this->state.currentIndex = this->state.maxIndex - 1;
+    }
+  }
+}
+
 void OLEDDisplayUi::switchToFrame(uint8_t frame) {
   if (frame >= this->frameCount) return;
   this->state.ticksSinceLastStateSwitch = 0;
@@ -275,6 +308,7 @@ void OLEDDisplayUi::tick() {
           this->nextFrameNumber = -1;
         }
       break;
+    case SELECTED:
     case FIXED:
       // Revert manualControl
       if (this->state.manualControl) {
@@ -384,6 +418,7 @@ void OLEDDisplayUi::drawFrame(){
 
        break;
      }
+     case SELECTED:
      case FIXED:
       // Always assume that the indicator is drawn!
       // And set indicatorDrawState to "not known yet"

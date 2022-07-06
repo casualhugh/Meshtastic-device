@@ -55,9 +55,6 @@ using namespace concurrency;
 // We always create a screen object, but we only init it if we find the hardware
 graphics::Screen *screen;
 
-// Global button status
-meshtastic::ButtonStatus *buttonStatus = new meshtastic::ButtonStatus();
-
 // Global power status
 meshtastic::PowerStatus *powerStatus = new meshtastic::PowerStatus();
 
@@ -192,8 +189,6 @@ void setup()
     power->setStatusHandler(powerStatus);
     powerStatus->observe(&power->newStatus);
     power->setup(); // Must be after status handler is installed, so that handler gets notified of the initial configuration
-    buttonThread->setStatusHandler(buttonStatus);
-    buttonStatus->observe(&buttonThread->newStatus);
     // Init our SPI controller (must be before screen and lora)
     initSPI();
     // ESP32

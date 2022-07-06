@@ -5,6 +5,7 @@
 #include "graphics/Screen.h"
 #include "power.h"
 #include <OneButton.h>
+#include "commands.h"
 // enum {
 //     PRESS_UP = 1,
 //     PRESS_DOWN = 2
@@ -48,8 +49,6 @@ class ButtonThread : public concurrency::OSThread
 
   public:
     static uint32_t longPressTime;
-    Observable<const meshtastic::ButtonStatus *> newStatus;
-    void setStatusHandler(meshtastic::ButtonStatus *handler) { statusHandler = handler; }
     // callback returns the period for the next callback invocation (or 0 if we should no longer be called)
     ButtonThread() : OSThread("Button")
     {
@@ -76,7 +75,6 @@ class ButtonThread : public concurrency::OSThread
     }
 
   protected:
-     meshtastic::ButtonStatus *statusHandler;
     /// If the button is pressed we suppress CPU sleep until release
     int32_t runOnce() override
     {
@@ -98,22 +96,20 @@ class ButtonThread : public concurrency::OSThread
     static void button1Pressed()
     {
         DEBUG_MSG("press 1 !\n");
-        screen->onPress(PRESS_UP, SINGLE_PRESS);
+        screen->onPress(Cmd::ON_PRESS_UP_SINGLE);
         // #ifdef BUTTON_PIN
         //         if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
         //             !moduleConfig.canned_message.enabled) {
         //             powerFSM.trigger(EVENT_PRESS);
         //         }
         // #endif
-        // // buttonThread->updateButtonStatus(1, SINGLE_PRESS);
 
     }
     static void button1PressedLong()
     {
-        DEBUG_MSG("Long press 1 !\n");
-        // buttonThread->updateButtonStatus(1, LONG_PRESS);
-        screen->onPress(PRESS_UP, LONG_PRESS);
-        screen->adjustBrightness();
+        // DEBUG_MSG("Long press 1 !\n");
+        
+        //screen->adjustBrightness();
         // // If user button is held down for 5 seconds, shutdown the device.
         // if ((millis() - longPressTime > 5 * 1000) && (longPressTime > 0)) {
 
@@ -124,15 +120,15 @@ class ButtonThread : public concurrency::OSThread
 
     static void button1DoublePressed()
     {
+        screen->onPress(Cmd::ON_PRESS_UP_ALT);
         // Doesnt do anything lol disablePin();
-        // buttonThread->updateButtonStatus(1, ALT_PRESS);
         
     }
 
     static void button1MultiPressed()
     {
+        
         // Bluetooth disconnect and restart clearNVS();
-        // buttonThread->updateButtonStatus(1, ALT_PRESS);
     }
 
     static void button1PressedLongStart()
@@ -145,7 +141,7 @@ class ButtonThread : public concurrency::OSThread
 
     static void button1PressedLongStop()
     {
-        
+        screen->onPress(Cmd::ON_PRESS_UP_LONG);
         // if (millis() > 30 * 1000) {
         //     DEBUG_MSG("Long press stop!\n");
         //     longPressTime = 0;
@@ -159,49 +155,46 @@ class ButtonThread : public concurrency::OSThread
     static void button2Pressed()
     {
         DEBUG_MSG("press 2!\n");
-        screen->onPress(PRESS_DOWN, SINGLE_PRESS);
+        screen->onPress(Cmd::ON_PRESS_DOWN_SINGLE);
         // #ifdef BUTTON_PIN
         //         if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
         //             !moduleConfig.canned_message.enabled) {
         //             powerFSM.trigger(EVENT_PRESS);
         //         }
         // #endif
-        // buttonThread->updateButtonStatus(1, SINGLE_PRESS);
 
     }
     static void button2PressedLong()
     {
         // DEBUG_MSG("Long press!\n");
-        // buttonThread->updateButtonStatus(1, LONG_PRESS);
-        DEBUG_MSG("Long press 2 %u\n", (millis() - longPressTime));
+        
+        //DEBUG_MSG("Long press 2 %u\n", (millis() - longPressTime));
         
     }
 
     static void button2DoublePressed()
     {
-        screen->onPress(PRESS_DOWN, LONG_PRESS);
+        screen->onPress(Cmd::ON_PRESS_DOWN_ALT);
         // Doesnt do anything lol disablePin();
-        // buttonThread->updateButtonStatus(1, ALT_PRESS);
         
     }
 
     static void button2MultiPressed()
     {
         // Bluetooth disconnect and restart clearNVS();
-        // buttonThread->updateButtonStatus(1, ALT_PRESS);
     }
 
     static void button2PressedLongStart()
     {
         if (millis() > 30 * 1000) {
-            DEBUG_MSG("Long press 1 start!\n");
+            //DEBUG_MSG("Long press 1 start!\n");
             longPressTime = millis();
         }
     }
 
     static void button2PressedLongStop()
     {
-        
+        screen->onPress(Cmd::ON_PRESS_DOWN_LONG);
         if (millis() > 30 * 1000) {
             DEBUG_MSG("Long press stop!\n");
             longPressTime = 0;

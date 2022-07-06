@@ -103,8 +103,6 @@ class Screen : public concurrency::OSThread
         CallbackObserver<Screen, const MeshPacket *>(this, &Screen::handleTextMessage);
     CallbackObserver<Screen, const UIFrameEvent *> uiFrameEventObserver =
         CallbackObserver<Screen, const UIFrameEvent *>(this, &Screen::handleUIFrameEvent);
-    CallbackObserver<Screen, const meshtastic::Status *> buttonStatusObserver =
-        CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
   public:
     explicit Screen();
 
@@ -137,20 +135,8 @@ class Screen : public concurrency::OSThread
     void blink();
 
     /// Handles a button press.
-    void onPress(uint8_t dir, uint8_t press_type) { 
-        if (dir == PRESS_UP){
-            if (press_type == SINGLE_PRESS){
-                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_UP_SINGLE}); 
-            } else {
-                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_UP_LONG}); 
-            }
-        } else {
-            if (press_type == SINGLE_PRESS){
-                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_DOWN_SINGLE}); 
-            } else {
-                enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS_DOWN_LONG}); 
-            }
-        } 
+    void onPress(Cmd type) { 
+        enqueueCmd(ScreenCmd{.cmd = type});
     }
     
     // Implementation to Adjust Brightness
@@ -291,7 +277,7 @@ class Screen : public concurrency::OSThread
 
     // Implementations of various commands, called from doTask().
     void handleSetOn(bool on);
-    void handleOnPress();
+    void handleOnPress(uint8_t dir);
     void handleLongPress(uint8_t dir);
     void handleStartBluetoothPinScreen(uint32_t pin);
     void handlePrint(const char *text);

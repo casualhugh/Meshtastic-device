@@ -4,7 +4,6 @@
 #include "GPSStatus.h"
 #include "NodeStatus.h"
 #include "PowerStatus.h"
-#include "ButtonStatus.h"
 #include "Screen.h"
 #include "mesh/generated/telemetry.pb.h"
 

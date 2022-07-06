@@ -784,7 +784,6 @@ void Screen::setup()
     serialSinceMsec = millis();
 
     // Subscribe to status updates
-    buttonStatusObserver.observe(&buttonStatus->onNewStatus);
     powerStatusObserver.observe(&powerStatus->onNewStatus);
     gpsStatusObserver.observe(&gpsStatus->onNewStatus);
     nodeStatusObserver.observe(&nodeStatus->onNewStatus);
@@ -854,20 +853,22 @@ int32_t Screen::runOnce()
             handleSetOn(false);
             break;
         case Cmd::ON_PRESS_UP_SINGLE:
-            ui.setFrameAnimation(SLIDE_DOWN);
-            handleOnPress();
+            handleOnPress(PRESS_UP);
             break;
-        case Cmd::ON_PRESS_DOWN_SINGLE:
-            ui.setFrameAnimation(SLIDE_UP);
-            handleOnPress();
+        case Cmd::ON_PRESS_UP_ALT:
+            handleOnPress(PRESS_UP);
             break;
         case Cmd::ON_PRESS_UP_LONG:
-            ui.setFrameAnimation(SLIDE_DOWN);
-            handleOnPress();
+            handleLongPress(PRESS_UP);
+            break;
+        case Cmd::ON_PRESS_DOWN_SINGLE:
+            handleOnPress(PRESS_DOWN);
+            break;
+        case Cmd::ON_PRESS_DOWN_ALT:
+            handleOnPress(PRESS_DOWN);
             break;
         case Cmd::ON_PRESS_DOWN_LONG:
-            ui.setFrameAnimation(SLIDE_UP);
-            handleOnPress();
+            handleLongPress(PRESS_DOWN);
             break;
         case Cmd::START_BLUETOOTH_PIN_SCREEN:
             handleStartBluetoothPinScreen(cmd.bluetooth_pin);
@@ -904,7 +905,7 @@ int32_t Screen::runOnce()
     // Switch to a low framerate (to save CPU) when we are not in transition
     // but we should only call setTargetFPS when framestate changes, because
     // otherwise that breaks animations.
-    if (targetFramerate != IDLE_FRAMERATE && ui.getUiState()->frameState == FIXED) {
+    if (targetFramerate != IDLE_FRAMERATE && (ui.getUiState()->frameState == FIXED || ui.getUiState()->frameState == SELECTED)) {
         // oldFrameState = ui.getUiState()->frameState;
         DEBUG_MSG("Setting idle framerate\n");
         targetFramerate = IDLE_FRAMERATE;
@@ -924,7 +925,7 @@ int32_t Screen::runOnce()
         if (config.display.auto_screen_carousel_secs > 0 &&
             (millis() - lastScreenTransition) > (config.display.auto_screen_carousel_secs * 1000)) {
             DEBUG_MSG("LastScreenTransition exceeded %ums transitioning to next frame\n", (millis() - lastScreenTransition));
-            handleOnPress();
+            handleOnPress(PRESS_DOWN);
         }
     }
 
@@ -1141,13 +1142,26 @@ void Screen::handlePrint(const char *text)
     dispdev.print(text);
 }
 
-void Screen::handleOnPress()
+void Screen::handleOnPress(uint8_t dir)
 {
     // If screen was off, just wake it, otherwise advance to next frame
     // If we are in a transition, the press must have bounced, drop it.
     if (ui.getUiState()->frameState == FIXED) {
-        ui.nextFrame();
+        if (dir == PRESS_DOWN){
+            ui.nextFrame();
+        } else {
+            ui.previousFrame();
+        }
         DEBUG_MSG("Setting LastScreenTransition\n");
+        lastScreenTransition = millis();
+        setFastFramerate();
+    } else if (ui.getUiState()->frameState == SELECTED){
+        DEBUG_MSG("Changing index\n");
+        if (dir == PRESS_DOWN){
+            ui.nextIndex();
+        } else {
+            ui.previousIndex();
+        }
         lastScreenTransition = millis();
         setFastFramerate();
     }
@@ -1155,7 +1169,49 @@ void Screen::handleOnPress()
 
 void Screen::handleLongPress(uint8_t dir)
 {
-    DEBUG_MSG("Would have long pressed");
+    
+    OLEDDisplayUiState* state = ui.getUiState();
+    if (state->frameState == FIXED) {
+        if (dir == PRESS_DOWN){
+            // Transition to selected
+            ui.getUiState()->frameState = SELECTED;
+            state->currentIndex = 0;
+            DEBUG_MSG("Switching to selected");
+        } else {
+            // Power down
+            DEBUG_MSG("Powerdown (do nothing for now");
+        }
+    } else if (state->frameState == SELECTED){
+        if (dir == PRESS_DOWN){
+            // Do some Select function
+            // Enable/disable, word select using letters, menu select from predefined options 
+            if (state->currentSetting == -1){
+                // We are trying to enter the modification screen for a setting
+                state->currentSetting = state->currentIndex;
+                state->currentIndex = 0;
+                DEBUG_MSG("Selecting a setting");
+            } else {
+                // We are trying to advance through the setting ie by selecting and saving
+                // or chosing the next character
+                DEBUG_MSG("Advancing in a setting");
+                state->select = true;
+            }
+        } else {
+            if (state->currentSetting == -1){
+                // No setting is selected to modify so we can transition to the main screen
+                ui.getUiState()->frameState = FIXED;
+                state->currentIndex = 0;
+                DEBUG_MSG("Going back to regular page");
+            } else {
+                // We are exiting the current setting so need to save it
+                // SAVE THE SETTING HERE
+                state->currentIndex = state->currentSetting;
+                state->currentSetting = -1;
+                DEBUG_MSG("Saving setting");
+            }
+
+        }
+    }
 }
 
 #ifndef SCREEN_TRANSITION_FRAMERATE

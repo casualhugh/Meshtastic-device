@@ -30,7 +30,8 @@ enum IndicatorDirection {
 
 enum FrameState {
   IN_TRANSITION,
-  FIXED
+  FIXED,
+  SELECTED
 };
 
 enum TransitionRelationship {
@@ -57,6 +58,10 @@ struct OLEDDisplayUiState {
 
   FrameState    frameState;
   uint8_t       currentFrame;
+  uint8_t       currentIndex;
+  int8_t        currentSetting;
+  uint8_t       maxIndex;
+  bool          select;
   uint8_t       transitionFrameTarget;
   TransitionRelationship transitionFrameRelationship;
 
@@ -294,6 +299,9 @@ class OLEDDisplayUi {
     void nextFrame();
     void previousFrame();
 
+    // Manual Control
+    void nextIndex();
+    void previousIndex();
     /**
      * Switch without transition to frame `frame`.
      */
