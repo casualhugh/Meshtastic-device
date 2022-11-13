@@ -54,7 +54,8 @@
     "esp_nimble_hci.h": "c",
     "map": "cpp",
     "ratio": "cpp",
-    "chrono": "cpp"
+    "chrono": "cpp",
+    "random": "cpp"
   },
   "cSpell.words": [
     "Blox",

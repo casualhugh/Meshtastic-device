@@ -23,7 +23,7 @@ class Screen
 
 #else
 #include <cstring>
-
+#include "PowerStatus.h"
 #include "OLEDDisplayUi.h"
 
 #include "configuration.h"
@@ -83,7 +83,8 @@ namespace graphics
 //     concurrency::Lock lock;
 // };
 
-
+// static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *imgBuffer, const PowerStatus *powerStatus);
+void screen_header(OLEDDisplay *display,  OLEDDisplayUiState* state);
 /**
  * @brief This class deals with showing things on the screen of the device.
  *
@@ -247,13 +248,13 @@ class Screen : public concurrency::OSThread
     void setSSLFrames();
 
     void setWelcomeFrames();
-
+    bool displayingHeading = false;
   protected:
     /// Updates the UI.
     //
     // Called periodically from the main loop.
     int32_t runOnce() final;
-
+    
   private:
     struct ScreenCmd {
         Cmd cmd;
@@ -294,7 +295,6 @@ class Screen : public concurrency::OSThread
 
     static void drawDebugInfoSettingsTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
     static void drawInfoTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
-    static void drawSettingTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
     static void drawFakeNodeTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 
     static void drawDebugInfoWiFiTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
@@ -321,3 +321,4 @@ class Screen : public concurrency::OSThread
 
 } // namespace graphics
 #endif
+extern char ipaddress[17];

@@ -5,7 +5,7 @@
 #include "MeshService.h"
 #include "PowerFSM.h" // neede for button bypass
 #include "mesh/generated/cannedmessages.pb.h"
-
+#include "AdminModule.h"
 // TODO: reuse defined from Screen.cpp
 #define FONT_SMALL 1
 #define FONT_MEDIUM 2
@@ -28,7 +28,15 @@ extern bool saveProto(const char *filename, size_t protoSize, size_t objSize, co
 CannedMessageModule::CannedMessageModule()
     : SinglePortModule("canned", PortNum_TEXT_MESSAGE_APP), concurrency::OSThread("CannedMessageModule")
 {
-    if (moduleConfig.canned_message.enabled) {
+    
+    ModuleConfig config;
+    ModuleConfig_CannedMessageConfig canned;
+    canned.enabled = true;
+    config.which_payloadVariant = ModuleConfig_canned_message_tag;
+    config.payloadVariant.canned_message = canned;
+    adminModule->handleSetModuleConfig(config);
+    
+    if (moduleConfig.canned_message.enabled || true) {
         this->loadProtoForModule();
         if (this->splitConfiguredMessages() <= 0) {
             DEBUG_MSG("CannedMessageModule: No messages are configured. Module is disabled\n");
@@ -87,6 +95,20 @@ int CannedMessageModule::splitConfiguredMessages()
     }
 
     return this->messagesCount;
+}
+
+void CannedMessageModule::eventUp(){
+    this->runState = CANNED_MESSAGE_RUN_STATE_ACTION_UP;
+    setIntervalFromNow(0);
+}
+void CannedMessageModule::eventDown(){
+    this->runState = CANNED_MESSAGE_RUN_STATE_ACTION_DOWN;
+    setIntervalFromNow(0);
+}
+
+void CannedMessageModule::eventSelect(){
+    this->runState = CANNED_MESSAGE_RUN_STATE_ACTION_SELECT;
+    setIntervalFromNow(0);
 }
 
 int CannedMessageModule::handleInputEvent(const InputEvent *event)
@@ -245,11 +267,11 @@ void CannedMessageModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *st
     if (cannedMessageModule->runState == CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE) {
         display->setTextAlignment(TEXT_ALIGN_CENTER);
         display->setFont(FONT_MEDIUM);
-        display->drawString(x, y + display->getHeight() / 2, "Sending...");
+        display->drawString(x + display->getWidth() / 2, y + display->getHeight() / 2, "Sending...");
     } else if (cannedMessageModule->runState == CANNED_MESSAGE_RUN_STATE_DISABLED) {
         display->setTextAlignment(TEXT_ALIGN_CENTER);
         display->setFont(FONT_SMALL);
-        display->drawString(x, y + display->getHeight() / 2, "Canned Message\nModule disabled.");
+        display->drawString(x + display->getWidth() / 2, y + display->getHeight() / 2, "Canned Message\nModule disabled.");
     } else {
         display->setTextAlignment(TEXT_ALIGN_LEFT);
         display->setFont(FONT_SMALL);
@@ -286,6 +308,7 @@ bool CannedMessageModule::saveProtoForModule()
     okay &= saveProto(cannedMessagesConfigFile, CannedMessageModuleConfig_size, sizeof(CannedMessageModuleConfig),
                       CannedMessageModuleConfig_fields, &cannedMessageModuleConfig);
 
+    splitConfiguredMessages();
     return okay;
 }
 

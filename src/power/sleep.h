@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include "Observer.h"
 #include "configuration.h"
-
+#include "rom/rtc.h"
 void doDeepSleep(uint64_t msecToWake), cpuDeepSleep(uint64_t msecToWake);
 
 #ifndef NO_ESP32
@@ -11,6 +11,7 @@ void doDeepSleep(uint64_t msecToWake), cpuDeepSleep(uint64_t msecToWake);
 esp_sleep_wakeup_cause_t doLightSleep(uint64_t msecToWake);
 
 extern esp_sleep_source_t wakeCause;
+extern RESET_REASON hwReason;
 #endif
 void setGPSPower(bool on);
 

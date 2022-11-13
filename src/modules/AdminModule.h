@@ -11,15 +11,6 @@ class AdminModule : public ProtobufModule<AdminMessage>
      * name is for debugging output
      */
     AdminModule();
-
-  protected:
-    /** Called to handle a particular incoming message
-
-    @return true if you've guaranteed you've handled this message and no other handlers should be considered for it
-    */
-    virtual bool handleReceivedProtobuf(const MeshPacket &mp, AdminMessage *p) override;
-
-  private:
     /**
      * Getters
      */
@@ -36,6 +27,14 @@ class AdminModule : public ProtobufModule<AdminMessage>
     void handleSetConfig(const Config &c);
     void handleSetModuleConfig(const ModuleConfig &c);
     void handleSetChannel();
+  protected:
+    /** Called to handle a particular incoming message
+
+    @return true if you've guaranteed you've handled this message and no other handlers should be considered for it
+    */
+    virtual bool handleReceivedProtobuf(const MeshPacket &mp, AdminMessage *p) override;
+
+    
 };
 
 extern AdminModule *adminModule;

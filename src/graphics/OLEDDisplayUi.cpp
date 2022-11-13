@@ -33,7 +33,7 @@ OLEDDisplayUi::OLEDDisplayUi(OLEDDisplay *display) {
   state.currentIndex = 0;
   state.currentSetting = -1;
   state.maxIndex = 1;
-  state.select = false;
+  state.action = NOACTION;
   state.isIndicatorDrawn = true;
   state.manualControl = false;
   state.userData = NULL;
@@ -198,9 +198,15 @@ void OLEDDisplayUi::previousIndex() {
     this->state.ticksSinceLastStateSwitch = 0;
     this->lastTransitionDirection = this->state.frameTransitionDirection;
     this->state.frameTransitionDirection = -1;
-    this->state.currentIndex -= 1;
-    if (this->state.currentIndex < 0) {
-      this->state.currentIndex = this->state.maxIndex - 1;
+    
+    if (this->state.currentIndex == 0) {
+       if (this->state.maxIndex > 0) {
+        this->state.currentIndex = this->state.maxIndex - 1;
+       } else {
+        this->state.currentIndex = 0;
+       }
+    } else {
+      this->state.currentIndex -= 1;
     }
   }
 }

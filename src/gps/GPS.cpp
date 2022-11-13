@@ -119,7 +119,8 @@ void GPS::wake()
         //pinMode(PIN_GPS_WAKE, OUTPUT);
     #endif
     //delay(10);
-    //ss.println("$PMTK353,1,1,1,0,0*2A");
+    _serial_gps->println("$PMTK353,1,1,1,0,0*2A");
+    _serial_gps->println("$PMTK 286,1*23");
 }
 
 void GPS::sleep()
@@ -288,7 +289,7 @@ int32_t GPS::runOnce()
                 hasValidLocation = false;
             }
 
-            setAwake(false);
+            // HUGH COMMENTED THIS setAwake(false);
             shouldPublish = true; // publish our update for this just finished acquisition window
         }
     }

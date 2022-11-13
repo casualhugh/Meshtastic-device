@@ -97,12 +97,12 @@ class ButtonThread : public concurrency::OSThread
     {
         DEBUG_MSG("press 1 !\n");
         screen->onPress(Cmd::ON_PRESS_UP_SINGLE);
-        // #ifdef BUTTON_PIN
-        //         if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
-        //             !moduleConfig.canned_message.enabled) {
-        //             powerFSM.trigger(EVENT_PRESS);
-        //         }
-        // #endif
+        #ifdef BUTTON_PIN
+                if ((BUTTON_PIN != moduleConfig.canned_message.inputbroker_pin_press) ||
+                    !moduleConfig.canned_message.enabled) {
+                    powerFSM.trigger(EVENT_PRESS);
+                }
+        #endif
 
     }
     static void button1PressedLong()

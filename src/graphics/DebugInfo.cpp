@@ -14,14 +14,20 @@
 #include "mesh/Channels.h"
 #include "mesh/generated/deviceonly.pb.h"
 #include "modules/TextMessageModule.h"
+#include "modules/CannedMessageModule.h"
 #include "sleep.h"
 #include "target_specific.h"
 #include "utils.h"
-
+#include "heading.h"
+#include <TinyGPS++.h>
 #ifndef NO_ESP32
 #include "esp_task_wdt.h"
+#include "main.h"
+#include "ESP32OTA.h"
 //#include "mesh/http/WiFiAPClient.h"
 #endif
+
+
 
 using namespace meshtastic; /** @todo remove */
 
@@ -40,7 +46,7 @@ namespace graphics
 // #define SHOW_REDRAWS
 
 // This image definition is here instead of images.h because it's modified dynamically by the drawBattery function
-uint8_t imgBattery[16] = {0xFF, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0xE7, 0x3C};
+// uint8_t imgBattery[16] = {0xFF, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0xE7, 0x3C};
 
 // Threshold values for the GPS lock accuracy bar display
 uint32_t dopThresholds[5] = {2000, 1000, 500, 200, 100};
@@ -70,37 +76,9 @@ static bool heartbeat = false;
 #define SCREEN_TRANSITION_MSECS 300
 #endif
 
-// Draw power bars or a charging indicator on an image of a battery, determined by battery charge voltage or percentage.
-static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *imgBuffer, const PowerStatus *powerStatus)
-{
-    // static const uint8_t powerBar[3] = {0x81, 0xBD, 0xBD};
-    // static const uint8_t lightning[8] = {0xA1, 0xA1, 0xA5, 0xAD, 0xB5, 0xA5, 0x85, 0x85};
-    // // Clear the bar area on the battery image
-    // for (int i = 1; i < 14; i++) {
-    //     imgBuffer[i] = 0x81;
-    // }
-    // // If charging, draw a charging indicator
-    // if (powerStatus->getIsCharging()) {
-    //     memcpy(imgBuffer + 3, lightning, 8);
-    //     // If not charging, Draw power bars
-    // } else {
-    //     for (int i = 0; i < 4; i++) {
-    //         if (powerStatus->getBatteryChargePercent() >= 25 * i)
-    //             memcpy(imgBuffer + 1 + (i * 3), powerBar, 3);
-    //     }
-    // }
-    // display->drawFastImage(x, y, 16, 8, imgBuffer);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->setFont(FONT_HEIGHT_SMALL);
-    char battString[5];
-    if (powerStatus->getIsCharging()) {
-        display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL, "Charging");
-    } else {
-        
-        sprintf(battString, "%u %%", powerStatus->getBatteryChargePercent());
-        display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL, battString); 
-    }
-}
+
+
+
 
 // Draw nodes status
 static void drawNodes(OLEDDisplay *display, int16_t x, int16_t y, NodeStatus *nodeStatus)
@@ -137,8 +115,8 @@ static void drawGPS(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus 
                 bar[0] = ~((1 << (5 - i)) - 1);
             else
                 bar[0] = 0b10000000;
-            // bar[1] = bar[0];
-            //display->drawFastImage(x + 9 + (i * 2), y, 2, 8, bar);
+            bar[1] = bar[0];
+            display->drawFastImage(x + 9 + (i * 2), y, 2, 8, bar);
         }
 
         // Draw satellite image
@@ -226,6 +204,90 @@ static void drawGPScoordinates(OLEDDisplay *display, int16_t x, int16_t y, const
     }
 }
 
+void saveChannel(char* buf, uint8_t length){
+
+}
+void saveMode(char* buf, uint8_t length){
+
+}
+void saveCannedMsgOne(char* buf, uint8_t length){
+    buf[length] = '|';
+    cannedMessageModule->handleSetCannedMessageModulePart1(buf);
+}
+
+void saveCannedMsgTwo(char* buf, uint8_t length){
+     buf[length] = '|';
+    cannedMessageModule->handleSetCannedMessageModulePart2(buf);
+}
+
+void saveCannedMsgThree(char* buf, uint8_t length){
+     buf[length] = '|';
+    cannedMessageModule->handleSetCannedMessageModulePart3(buf);
+}
+
+void saveCannedMsgFour(char* buf, uint8_t length){
+     buf[length] = '|';
+    cannedMessageModule->handleSetCannedMessageModulePart4(buf);
+}
+
+void resetCannedMsgs(char* buf, uint8_t length){
+    nodeDB.installDefaultDeviceState();
+    nodeDB.saveToDisk();
+    
+    char str[20];
+    memset(str, '\0', 20);
+    sprintf(str, "Okay");
+    saveCannedMsgOne(str, strlen(str));
+    memset(str, '\0', 20);
+    sprintf(str, "Looking 4 U");
+    saveCannedMsgTwo(str, strlen(str));
+    memset(str, '\0', 20);
+    sprintf(str, "Come 2 me");
+    saveCannedMsgThree(str, strlen(str));
+    memset(str, '\0', 20);
+    sprintf(str, "On my way");
+    saveCannedMsgFour(str, strlen(str));
+    nodeDB.saveToDisk();
+    delay(100);
+    ESP.restart();
+}
+
+void enableDebugMenu(char* buf, uint8_t length){
+    forceSoftAP = ota_setup();
+}
+void restart(char* buf, uint8_t length){
+    delay(500);
+    ESP.restart();
+}
+
+void saveLongName(char* buf, uint8_t length){
+    User new_owner = owner;
+    memcpy(new_owner.long_name,
+        buf, 
+        length+1);
+    buf[2] = '\0';
+    memcpy(new_owner.short_name,
+        buf, 
+        3        
+        );
+    adminModule->handleSetOwner(new_owner);
+}
+
+
+void saveShortName(char* buf, uint8_t length){
+    User new_owner = owner;
+    
+    memcpy(new_owner.long_name,
+        buf, 
+        length+1);
+    buf[2] = '\0';
+    memcpy(new_owner.short_name,
+        buf, 
+        3        
+        );
+    adminModule->handleSetOwner(new_owner);
+}
+
 void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
     displayedNodeNum = 0; // Not currently showing a node pane
@@ -243,10 +305,10 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     }
 
     // Display power status
-    if (powerStatus->getHasBattery())
-        drawBattery(display, x, y, imgBattery, powerStatus);
-    else if (powerStatus->knowsUSB())
-        display->drawFastImage(x, y + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
+    // if (powerStatus->getHasBattery())
+    //     drawBattery(display, x, y, imgBattery, powerStatus);
+    // else if (powerStatus->knowsUSB())
+    //     display->drawFastImage(x, y + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
     // Display nodes status
     drawNodes(display, x + SCREEN_WIDTH/2, y, nodeStatus);
     // Display GPS status
@@ -263,127 +325,15 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     
 }
 
-void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-    displayedNodeNum = 0; // Not currently showing a node pane
-
-    display->setFont(FONT_SMALL);
-
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-
-    char batStr[20];
-    if (powerStatus->getHasBattery()) {
-        int batV = powerStatus->getBatteryVoltageMv() / 1000;
-        int batCv = (powerStatus->getBatteryVoltageMv() % 1000) / 10;
-
-        snprintf(batStr, sizeof(batStr), "B %01d.%02dV %3d%% %c%c", batV, batCv, powerStatus->getBatteryChargePercent(),
-                 powerStatus->getIsCharging() ? '+' : ' ', powerStatus->getHasUSB() ? 'U' : ' ');
-
-        // Line 1
-        display->drawString(x + SCREEN_WIDTH/2, y + (SCREEN_HEIGHT/2) - FONT_HEIGHT_SMALL*3, batStr);
-    } else {
-        // Line 1
-        display->drawString(x + SCREEN_WIDTH/2, y + (SCREEN_HEIGHT/2) - FONT_HEIGHT_SMALL*3, String("USB"));
-    }
-
-    auto mode = "";
-
-    switch (config.lora.modem_preset) {
-    case Config_LoRaConfig_ModemPreset_ShortSlow:
-        mode = "ShortSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_ShortFast:
-        mode = "ShortFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidSlow:
-        mode = "MediumSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidFast:
-        mode = "MediumFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongFast:
-        mode = "LongFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongSlow:
-        mode = "LongSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_VLongSlow:
-        mode = "VLongSlow";
-        break;
-    default:
-        mode = "Custom";
-        break;
-    }
-
-    display->drawString(x + SCREEN_WIDTH/2, y + (SCREEN_HEIGHT/2) - FONT_HEIGHT_SMALL*3, mode);
-
-    // Line 2
-    uint32_t currentMillis = millis();
-    uint32_t seconds = currentMillis / 1000;
-    uint32_t minutes = seconds / 60;
-    uint32_t hours = minutes / 60;
-    uint32_t days = hours / 24;
-    // currentMillis %= 1000;
-    // seconds %= 60;
-    // minutes %= 60;
-    // hours %= 24;
-
-    // Show uptime as days, hours, minutes OR seconds
-    String uptime;
-    if (days >= 2)
-        uptime += String(days) + "d ";
-    else if (hours >= 2)
-        uptime += String(hours) + "h ";
-    else if (minutes >= 1)
-        uptime += String(minutes) + "m ";
-    else
-        uptime += String(seconds) + "s ";
-
-    uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
-    if (rtc_sec > 0) {
-        long hms = rtc_sec % SEC_PER_DAY;
-        // hms += tz.tz_dsttime * SEC_PER_HOUR;
-        // hms -= tz.tz_minuteswest * SEC_PER_MIN;
-        // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
-        hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
-
-        // Tear apart hms into h:m:s
-        int hour = hms / SEC_PER_HOUR;
-        int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
-        int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
-
-        char timebuf[9];
-        snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
-        uptime += timebuf;
-    }
-
-    display->drawString(x + SCREEN_WIDTH/2, y - FONT_HEIGHT_SMALL * 1 + (SCREEN_HEIGHT/2), uptime);
-
-    // Display Channel Utilization
-    char chUtil[13];
-    sprintf(chUtil, "ChUtil %2.0f%%", airTime->channelUtilizationPercent());
-    display->drawString(x + SCREEN_WIDTH/2, y + (SCREEN_HEIGHT/2), chUtil);
-
-    // Line 3
-    if (config.display.gps_format !=
-        Config_DisplayConfig_GpsCoordinateFormat_GpsFormatDMS) // if DMS then don't draw altitude
-        drawGPSAltitude(display, x, y + (SCREEN_HEIGHT/2), gpsStatus);
-
-    // Line 4
-    drawGPScoordinates(display, x, y + (SCREEN_HEIGHT/2), gpsStatus);
-
-    /* Display a heartbeat pixel that blinks every time the frame is redrawn */
-#ifdef SHOW_REDRAWS
-    if (heartbeat)
-        display->setPixel(0, 0);
-    heartbeat = !heartbeat;
-#endif
-}
-
-
 void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
+    if (state->frameState != SELECTED){
+            
+        display->setFont(FONT_LARGE);
+        display->drawString(SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, String("System Info"));
+        return;
+    }
+    
     display->setFont(FONT_SMALL);
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     
@@ -396,6 +346,34 @@ void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, i
                  powerStatus->getIsCharging() ? '+' : ' ', powerStatus->getHasUSB() ? 'U' : ' ');
     } else {
         snprintf(batStr, sizeof(batStr), "USB");
+    }
+    char mode[10];
+
+    switch (config.lora.modem_preset) {
+    case Config_LoRaConfig_ModemPreset_ShortSlow:
+        sprintf(mode, "%s", "SSlow");
+        break;
+    case Config_LoRaConfig_ModemPreset_ShortFast:
+        sprintf(mode, "%s", "SFast");
+        break;
+    case Config_LoRaConfig_ModemPreset_MidSlow:
+        sprintf(mode, "%s", "MSlow");
+        break;
+    case Config_LoRaConfig_ModemPreset_MidFast:
+        sprintf(mode, "%s", "MFast");
+        break;
+    case Config_LoRaConfig_ModemPreset_LongFast:
+        sprintf(mode, "%s", "LFast");
+        break;
+    case Config_LoRaConfig_ModemPreset_LongSlow:
+        sprintf(mode, "%s", "LSlow");
+        break;
+    case Config_LoRaConfig_ModemPreset_VLongSlow:
+        sprintf(mode, "%s", "VLSlow");
+        break;
+    default:
+        sprintf(mode, "%s", "Custom");
+        break;
     }
 
 
@@ -429,25 +407,26 @@ void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, i
         uptime_letter = 's';    
     }
     char uptimebuf[20];
+    snprintf(uptimebuf, sizeof(uptimebuf), "Uptime: %02d %c", uptime_number, uptime_letter);
+    
+    char timebuf[20];
+    
+    uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
+    if (rtc_sec > 0) {
+        long hms = rtc_sec % SEC_PER_DAY;
+        // hms += tz.tz_dsttime * SEC_PER_HOUR;
+        // hms -= tz.tz_minuteswest * SEC_PER_MIN;
+        // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
+        hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
 
-    // uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
-    // if (rtc_sec > 0) {
-    //     long hms = rtc_sec % SEC_PER_DAY;
-    //     // hms += tz.tz_dsttime * SEC_PER_HOUR;
-    //     // hms -= tz.tz_minuteswest * SEC_PER_MIN;
-    //     // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
-    //     hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
-
-    //     // Tear apart hms into h:m:s
-    //     int hour = hms / SEC_PER_HOUR;
-    //     int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
-    //     int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
-
-    //     char timebuf[9];
-    //     snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
-    //     uptime += timebuf;
-    // }
-    snprintf(uptimebuf, sizeof(uptimebuf), "%02d %c", uptime_number, uptime_letter);
+        // Tear apart hms into h:m:s
+        int hour = hms / SEC_PER_HOUR;
+        int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
+        int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
+        snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
+    } else {
+        snprintf(timebuf, sizeof(timebuf), "00:00:00");
+    }
 
     char gpsStatbuf[10];
     char posbuf[20];
@@ -478,17 +457,24 @@ void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, i
         sprintf(gpsStatbuf, "Sats: %u", gpsStatus->getNumSatellites());
         sprintf(posbuf, "%f, %f", geoCoord.getLatitude() * 1e-7, geoCoord.getLongitude() * 1e-7);
     }
+    uint16_t myHeading = heading->getHeading(); //estimatedHeading(DegD(op.latitude_i), DegD(op.longitude_i));
+    
+    char headingbuf[12]; 
+    sprintf(headingbuf, "%s - %d", TinyGPSPlus::cardinal((float)myHeading * DEG_TO_RAD), myHeading);
+    
 
-    int lines = 7;
     char *to_display[] = {
+        timebuf,
         batStr,
+        mode,
         channelStr,
         usersString,
         uptimebuf,
         gpsStatbuf,
         posbuf,
-        "Heading: 200"
+        headingbuf
     };
+    int lines = 9;
     int center = SCREEN_WIDTH/2;
     int height = y + SCREEN_HEIGHT/2 - (lines * 5);
     for (int line = 0; line < lines; line++){
@@ -500,115 +486,290 @@ void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, i
 }
 
 
+void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    if (state->currentSetting != -1){
+        drawFrameSetting(display, state, x, y);
+    } else {
+        if (state->frameState == SELECTED){
+            state->maxIndex = NUM_SETTINGS;
+            
+            display->setFont(FONT_SMALL);
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+
+            int center = SCREEN_WIDTH/2;
+            for (int line = 0; line < NUM_SETTINGS; line++){
+                if (line == state->currentIndex && state->frameState == SELECTED){
+                    display->setFont(FONT_MEDIUM);
+                } else {
+                    display->setFont(FONT_SMALL);
+                }
+                int height = y + SCREEN_HEIGHT/2 + (line - state->maxIndex/2) * 20;
+                if (state->frameState == SELECTED){
+                    height = y + SCREEN_HEIGHT/2 + (line - state->currentIndex) * 20;
+                }
+                if (0 < height && height < SCREEN_HEIGHT){
+                display->drawString(center, height, String(settings[line]));
+                }
+            }
+        } else {
+            display->setFont(FONT_LARGE);
+            display->drawString(SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, String("Settings"));
+        }
+    }
+}
+
 void DebugInfo::drawFrameSetting(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    int lines = 7;
-    char channelStr[30];
-    {
-        concurrency::LockGuard guard(&lock);
-        auto chName = channels.getPrimaryName();
-        snprintf(channelStr, sizeof(channelStr), "%s", chName);
-    }
-    auto mode = "";
+    if (state->currentSetting >= 0 && state->currentSetting < NUM_SETTINGS){
+        switch(setting_type[state->currentSetting]){
+            case PREDEFINED:
+                if (state->currentSetting == 1){
+                    setName(display, state, x, y);
+                } else {
+                    resetFrame(display, state, x, y);
+                }
+                break;
+            case WORD:
+                drawWordSetting(display, state, x, y);
+                break;
+            case BOOL:
+                
+                break;
+        }
 
-    switch (config.lora.modem_preset) {
-    case Config_LoRaConfig_ModemPreset_ShortSlow:
-        mode = "SSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_ShortFast:
-        mode = "SFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidSlow:
-        mode = "MSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_MidFast:
-        mode = "MFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongFast:
-        mode = "LFast";
-        break;
-    case Config_LoRaConfig_ModemPreset_LongSlow:
-        mode = "LSlow";
-        break;
-    case Config_LoRaConfig_ModemPreset_VLongSlow:
-        mode = "VLSlow";
-        break;
-    default:
-        mode = "Custom";
-        break;
     }
+}
 
-    char *to_display[] = {
-        channelStr,
-        "mode",
-        "Long name",
-        "Short name",
-        "Canned msgs",
-        "Enable features",
-        "Turn off"
+
+
+void DebugInfo::setName(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y){
+    char* names[4] = {
+        "Hugh\0",
+        "Connor\0",
+        "Caitlin\0",
+        "Loz\0"
     };
-    int selected = 3;
-    int center = SCREEN_WIDTH/2;
-    for (int line = 0; line < lines; line++){
-        if (line == selected){
-            display->setFont(FONT_MEDIUM);
-        } else {
-            display->setFont(FONT_SMALL);
-        }
-        int height = y + SCREEN_HEIGHT/2 + (line - selected) * 20;
-        if (0 < height && height < SCREEN_HEIGHT){
-          display->drawString(center, height, String(to_display[line]));
-        }
+    int name_lengths[4] = {
+        5, 7, 8, 4
+    };
+    if (state->action == SELECT){
+        char buffer[15];
+        sprintf(buffer, "%s", names[state->currentIndex]);
+        saveShortName(buffer, strlen(buffer));
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+        state->action = NOACTION;
+    } else if (state->action == SAVE){
+        state->action = NOACTION;
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+        return;
     }
+    state->maxIndex = 4;
+    for(int i = 0; i < 4; i++){
+        if (i == state->currentIndex){
+            display->setFont(FONT_LARGE);
+        } else {
+            display->setFont(FONT_MEDIUM);
+        }
+        int height = SCREEN_HEIGHT/2 + (i - state->currentIndex) * 30;
+        display->drawString(x + SCREEN_WIDTH/2, y + height, String(names[i]));
+    }   
+}
+
+void DebugInfo::resetFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y){
+    if (state->action == SELECT){
+        // Reseting the canned messages and node info
+        settingSaves[state->currentSetting]("nothing", 10);
+        state->action = NOACTION;
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+        return;
+    } else if (state->action == SAVE){
+        // Actually wanting to go back
+        state->action = NOACTION;
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+    }
+    display->setFont(FONT_MEDIUM);
+    char question[21];
+    sprintf(question, "%s?", settings[state->currentSetting]);
+    display->drawString(x + SCREEN_WIDTH/2, 40, question);
+    display->setFont(FONT_SMALL);
+    display->drawString(x + 40, SCREEN_HEIGHT / 4, "Cancel");
+    display->drawString(x + 40, 3 * SCREEN_HEIGHT / 4, "Confirm");
+    
+}
+
+void DebugInfo::drawWordSetting(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y){
+    if (state->action == SELECT){
+        tempStore[currentLetter++] = alphabet[state->currentIndex];
+        state->action = NOACTION;
+    } else if (state->action == SAVE){
+        // Would save here
+        if (currentLetter > 0){
+            settingSaves[state->currentSetting](tempStore, currentLetter);
+        }
+        memset(tempStore, '\0', 64);
+        currentLetter = 0;
+        state->action = NOACTION;
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+        state->maxIndex = 1;
+        return;
+    }
+    if (state->maxIndex != LETTERS_SIZE){
+        state->maxIndex = LETTERS_SIZE;
+        memset(tempStore, '\0', 64);
+    }
+    display->setFont(FONT_MEDIUM);
+    display->drawString(x + SCREEN_WIDTH/2, 40, String(settings[state->currentSetting]));
+    if (currentLetter > 0){
+        display->drawString(x + SCREEN_WIDTH/2, 60, String(tempStore));
+    }
+    for(int i = 0; i < 26; i++){
+        if (i == state->currentIndex){
+            display->setFont(FONT_LARGE);
+        } else {
+            display->setFont(FONT_MEDIUM);
+        }
+        int height = SCREEN_HEIGHT/2 + (i - state->currentIndex) * 30 + 20;
+        if (90 < height && height < SCREEN_HEIGHT){
+            display->drawString(x + SCREEN_WIDTH/2, y + height, String(alphabet[i]));
+        }
+    }   
+}
+
+void DebugInfo::doSwitchSetting(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y){
+    if (state->action == SELECT){
+        tempStore[currentLetter++] = alphabet[state->currentIndex];
+        state->action = NOACTION;
+    } else if (state->action == SAVE){
+        // Would save here
+        if (currentLetter > 0){
+            settingSaves[state->currentSetting](tempStore, currentLetter);
+        }
+        memset(tempStore, '\0', 64);
+        currentLetter = 0;
+        state->action = NOACTION;
+        state->currentIndex = state->currentSetting;
+        state->currentSetting = -1;
+        state->maxIndex = 1;
+        return;
+    }
+    if (state->maxIndex != LETTERS_SIZE){
+        state->maxIndex = LETTERS_SIZE;
+        memset(tempStore, '\0', 64);
+    }
+    display->setFont(FONT_MEDIUM);
+    display->drawString(x + SCREEN_WIDTH/2, 40, String(settings[state->currentSetting]));
+    if (currentLetter > 0){
+        display->drawString(x + SCREEN_WIDTH/2, 60, String(tempStore));
+    }
+    for(int i = 0; i < 26; i++){
+        if (i == state->currentIndex){
+            display->setFont(FONT_LARGE);
+        } else {
+            display->setFont(FONT_MEDIUM);
+        }
+        int height = SCREEN_HEIGHT/2 + (i - state->currentIndex) * 30 + 20;
+        if (90 < height && height < SCREEN_HEIGHT){
+            display->drawString(x + SCREEN_WIDTH/2, y + height, String(alphabet[i]));
+        }
+    }   
 }
 
 void DebugInfo::drawFrameTestNode(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setFont(FONT_SMALL);
+    if (state->frameState == SELECTED){
+        drawFrameText(display, state, x, y);
+    } else {
+        display->setFont(FONT_SMALL);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        int lines = 4;
+        const char *to_display[] = {
+            "Name here",
+            "20m",
+            "60 seconds ago",
+            "-5dB - NNE - 200"
+        };
+        int center = SCREEN_WIDTH/2;
+        for (int line = 0; line < lines; line++){
+            if (line == 0 || line == 1){
+                display->setFont(FONT_MEDIUM);
+            } else {
+                display->setFont(FONT_SMALL);
+            }
+            int height = y + SCREEN_HEIGHT/2 + (line - 1) * 20;
+            if (0 < height && height < SCREEN_HEIGHT){
+            display->drawString(center, height, String(to_display[line]));
+            }
+        }
+        uint16_t degree = heading->getHeading();
+        uint16_t radius = 110;
+        uint16_t thickness = 10;
+        uint16_t width = 5;
+        /*
+        if (distance <= 20){
+            thickness = -5.33 * distance + 116.66;
+            if (thickness > 90){
+                thickness = 180;
+            }
+        } 
+        */ 
+        
+        display->drawArc(SCREEN_WIDTH/2, 
+                        SCREEN_HEIGHT/2, 
+                        radius - thickness /2 , 
+                        radius + thickness /2, 
+                        degree - width, 
+                        degree + width);
+    }
+}
+
+void DebugInfo::drawFrameText(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    cannedMessageModule->currentMessageIndex = state->currentIndex;
+    state->maxIndex = 4;
+    
+    if (state->currentSetting != 0){
+        state->currentSetting = 0;
+    }
+    if (state->action == SELECT || state->action == SAVE){
+        if (state->action == SELECT){
+            cannedMessageModule->eventSelect();
+        }
+        state->action = NOACTION;
+        state->frameState = FIXED;
+        state->currentIndex = 0;
+        state->currentSetting = -1;
+        return;
+    }   
+    
+    
+    display->setFont(FONT_MEDIUM);
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-    int lines = 4;
-    char *to_display[] = {
-        "Name here",
-        "20m",
-        "60 seconds ago",
-        "-5dB - NNE - 200"
+    int lines = 3;
+    const char *to_display[] = {
+        cannedMessageModule->getPrevMessage(),
+        cannedMessageModule->getCurrentMessage(),
+        cannedMessageModule->getNextMessage()
     };
     int center = SCREEN_WIDTH/2;
     for (int line = 0; line < lines; line++){
-        if (line == 0 || line == 1){
-            display->setFont(FONT_MEDIUM);
+        if (line == 1){
+            display->setFont(FONT_LARGE);
         } else {
-            display->setFont(FONT_SMALL);
+            display->setFont(FONT_MEDIUM);
         }
-        int height = y + SCREEN_HEIGHT/2 + (line - 1) * 20;
+        int height = y + SCREEN_HEIGHT/2 + (line - 1) * 40;
         if (0 < height && height < SCREEN_HEIGHT){
           display->drawString(center, height, String(to_display[line]));
         }
     }
-    uint16_t degree = 360 - 200;
-    uint16_t radius = 110;
-    uint16_t thickness = 10;
-    uint16_t width = 5;
-    /*
-    if (distance <= 20){
-        thickness = -5.33 * distance + 116.66;
-        if (thickness > 90){
-            thickness = 180;
-        }
-    } 
-    */ 
-    
-    display->drawArc(SCREEN_WIDTH/2, 
-                    SCREEN_HEIGHT/2, 
-                    radius - thickness /2 , 
-                    radius + thickness /2, 
-                    degree - width, 
-                    degree + width);
     
 }
-
 
 }
 

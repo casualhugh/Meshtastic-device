@@ -20,6 +20,7 @@
 
 
 esp_sleep_source_t wakeCause; // the reason we booted this time
+RESET_REASON hwReason;
 #endif
 
 /// Called to ask any observers if they want to veto sleep. Return 1 to veto or 0 to allow sleep to happen
@@ -100,8 +101,7 @@ void initDeepSleep()
 
     // If we booted because our timer ran out or the user pressed reset, send those as fake events
     const char *reason = "reset"; // our best guess
-    RESET_REASON hwReason = rtc_get_reset_reason(0);
-
+    hwReason = rtc_get_reset_reason(0);
     if (hwReason == RTCWDT_BROWN_OUT_RESET)
         reason = "brownout";
 

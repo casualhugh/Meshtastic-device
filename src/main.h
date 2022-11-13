@@ -10,7 +10,7 @@
 extern uint8_t screen_found;
 extern uint8_t screen_model;
 extern uint8_t rtc_found;
-
+extern int forceSoftAP;
 extern bool isCharging;
 extern bool isUSBPowered;
 

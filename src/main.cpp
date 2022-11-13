@@ -25,6 +25,7 @@
 #include "sleep.h"
 #include "target_specific.h"
 #include <Wire.h>
+#include "heading.h"
 // #include <driver/rtc_io.h>
 #ifdef WANT_WIFI
 #include "mesh/http/WiFiAPClient.h"
@@ -45,6 +46,11 @@
 
 #endif
 #endif
+#define WIFI_UPDATES
+#ifdef WIFI_UPDATES
+#include "ESP32OTA.h"
+#endif
+
 #include "RF95Interface.h"
 
 #include "ButtonThread.h"
@@ -116,14 +122,39 @@ __attribute__((weak, noinline)) bool loopCanSleep()
     return true;
 }
 
+#ifdef WIFI_UPDATES
+    int forceSoftAP = 0;
+
+#endif
+
 void setup()
 {
-    concurrency::hasBeenSetup = true;
-#ifdef DEBUG_PORT
-    if (!config.device.serial_disabled) {
-        consoleInit(); // Set serial baud rate and init our mesh console
+    #ifdef BUTTON_PIN
+    // If the button is connected to GPIO 12, don't enable the ability to use
+    // meshtasticAdmin on the device.
+    pinMode(BUTTON_PIN, INPUT);
+    #endif
+    #ifdef BUTTON_PIN_2
+        // If the button is connected to GPIO 12, don't enable the ability to use
+        // meshtasticAdmin on the device.
+        pinMode(BUTTON_PIN_2, INPUT);
+    #endif
+     #ifdef WIFI_UPDATES
+    if (digitalRead(BUTTON_PIN) && digitalRead(BUTTON_PIN_2)) {
+        if (wifi_setup()){
+            forceSoftAP = 3;
+            DEBUG_MSG("Setting forceSoftAP = 1\n");
+            return;
+        }
+       
     }
-#endif
+    #endif
+    concurrency::hasBeenSetup = true;
+    #ifdef DEBUG_PORT
+        if (!config.device.serial_disabled) {
+            consoleInit(); // Set serial baud rate and init our mesh console
+        }
+    #endif
 
     serialSinceMsec = millis();
     DEBUG_MSG("\n\n//\\ E S H T /\\ S T / C\n\n");
@@ -133,26 +164,17 @@ void setup()
         pinMode(VEXT_ENABLE, OUTPUT);
         digitalWrite(VEXT_ENABLE, 0); // turn on the display power
     #endif
-    #ifdef WANT_WIFI
-    bool forceSoftAP = 0;
-    #endif
+    
 
-#ifdef BUTTON_PIN
-    // If the button is connected to GPIO 12, don't enable the ability to use
-    // meshtasticAdmin on the device.
-    pinMode(BUTTON_PIN, INPUT);
-#endif
-#ifdef BUTTON_PIN_2
-    // If the button is connected to GPIO 12, don't enable the ability to use
-    // meshtasticAdmin on the device.
-    pinMode(BUTTON_PIN_2, INPUT);
-#endif
 
-    // BUTTON_PIN is pulled high by a 12k resistor.
-    #ifdef WANT_WIFI
-    if (!digitalRead(BUTTON_PIN)) {
+    // BUTTON_PIN is pulled low by a 12k resistor .
+    #ifdef WIFI_UPDATES
+    if (digitalRead(BUTTON_PIN)) {
         forceSoftAP = 1;
         DEBUG_MSG("Setting forceSoftAP = 1\n");
+    } else if (digitalRead(BUTTON_PIN_2)){
+        forceSoftAP = 2;
+        DEBUG_MSG("Setting forceSoftAP = 2\n");
     }
     #endif
     OSThread::setup();
@@ -165,7 +187,8 @@ void setup()
     Wire.begin(I2C_SDA, I2C_SCL);
 
     scanI2Cdevice();
-
+    heading = new Heading(&Wire);
+    heading->init();
     // Buttons & LED
     buttonThread = new ButtonThread();
 
@@ -276,7 +299,15 @@ void setup()
     // This must be _after_ service.init because we need our preferences loaded from flash to have proper timeout values
     PowerFSM_setup(); // we will transition to ON in a couple of seconds, FIXME, only do this for cold boots, not waking from SDS
     powerFSMthread = new PowerFSMThread();
-
+    #ifdef WIFI_UPDATES
+    if (hwReason != RTCWDT_BROWN_OUT_RESET && forceSoftAP == 1){
+        Serial.println("Doing wifisetup");
+        forceSoftAP = wifi_setup();
+        Serial.println("Done wifisetup");
+    } else if (hwReason != RTCWDT_BROWN_OUT_RESET && forceSoftAP == 2){
+        forceSoftAP = ota_setup();
+    }
+    #endif
     // setBluetoothEnable(false); we now don't start bluetooth until we enter the proper state
     setCPUFast(false); // 80MHz is fine for our slow peripherals
 }
@@ -310,19 +341,28 @@ void loop()
 
     // TODO: This should go into a thread handled by FreeRTOS.
     // handleWebResponse();
+    if (forceSoftAP != 3){
+        service.loop();
 
-    service.loop();
+        long delayMsec = mainController.runOrDelay();
 
-    long delayMsec = mainController.runOrDelay();
+        /* if (mainController.nextThread && delayMsec)
+            DEBUG_MSG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
+                    mainController.nextThread->tillRun(millis())); */
 
-    /* if (mainController.nextThread && delayMsec)
-        DEBUG_MSG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
-                  mainController.nextThread->tillRun(millis())); */
-
-    // We want to sleep as long as possible here - because it saves power
-    if (!runASAP && loopCanSleep()) {
-        // if(delayMsec > 100) DEBUG_MSG("sleeping %ld\n", delayMsec);
-        mainDelay.delay(delayMsec);
+        // We want to sleep as long as possible here - because it saves power
+        if (!runASAP && loopCanSleep()) {
+            // if(delayMsec > 100) DEBUG_MSG("sleeping %ld\n", delayMsec);
+            mainDelay.delay(delayMsec);
+        }
     }
     // if (didWake) DEBUG_MSG("wake!\n");
+    #ifdef WIFI_UPDATES
+    
+    if ((hwReason != RTCWDT_BROWN_OUT_RESET && forceSoftAP == 1) || forceSoftAP == 3){
+        server.handleClient();
+    } else if (hwReason != RTCWDT_BROWN_OUT_RESET && forceSoftAP == 2){
+        ArduinoOTA.handle();
+    }
+    #endif
 }

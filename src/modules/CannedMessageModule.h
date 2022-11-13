@@ -49,7 +49,7 @@ class CannedMessageModule :
     void handleSetCannedMessageModulePart2(const char *from_msg);
     void handleSetCannedMessageModulePart3(const char *from_msg);
     void handleSetCannedMessageModulePart4(const char *from_msg);
-
+    int currentMessageIndex = -1;
   protected:
 
     virtual int32_t runOnce() override;
@@ -76,7 +76,7 @@ class CannedMessageModule :
 
     void installDefaultCannedMessageModuleConfig();
 
-    int currentMessageIndex = -1;
+    
     cannedMessageModuleRunState runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
 
     char messageStore[CANNED_MESSAGE_MODULE_MESSAGES_SIZE+1];

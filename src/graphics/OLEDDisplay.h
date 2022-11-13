@@ -6,14 +6,7 @@
 #include <Arduino.h>
 
 #include "Arduino_GFX_Library.h"
-#define SCREEN_BL 26
-#define DC_PIN  14
-#define CS_PIN 5
-#define SCK_PIN 18
-#define MOSI_PIN 23
-#define MISO_PIN 19
-#define RST_PIN 2
-#define PULLUP_LCD 25
+#include "configuration.h"
 
 //#include <OLEDDisplayFonts.h>
 
@@ -216,12 +209,13 @@ class OLEDDisplay : public Print  {
     #ifdef OLEDDISPLAY_DOUBLE_BUFFER
     uint8_t            *buffer_back;
     #endif
-
+    bool isOn() { return isDisplayOn;}
   protected:
     uint16_t  displayWidth;
     uint16_t  displayHeight;
     uint16_t  displayBufferSize;
-
+    uint8_t brightness;
+    bool isDisplayOn;
     OLEDDISPLAY_TEXT_ALIGNMENT   textAlignment;
     OLEDDISPLAY_COLOR            color;
 

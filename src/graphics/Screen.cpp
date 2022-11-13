@@ -1,24 +1,3 @@
-/*
-
-SSD1306 - Screen module
-
-Copyright (C) 2018 by Xose Pérez <xose dot perez at gmail dot com>
-
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*/
 #include "configuration.h"
 #ifndef NO_SCREEN
 #include "OLEDDisplay.h"
@@ -39,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "target_specific.h"
 #include "utils.h"
 #include "TinyGPS++.h"
+#include "Heading.h"
 #ifndef NO_ESP32
 #include "esp_task_wdt.h"
 #ifdef WANT_WIFI
@@ -47,8 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 using namespace meshtastic; /** @todo remove */
-
+char ipaddress[17] = "\0";
 extern bool loadProto(const char *filename, size_t protoSize, size_t objSize, const pb_msgdesc_t *fields, void *dest_struct);
+
+
+
 
 namespace graphics
 {
@@ -73,6 +56,8 @@ std::vector<MeshModule *> moduleFrames;
 
 // Stores the last 4 of our hardware ID, to make finding the device for pairing easier
 static char ourId[5];
+// This image definition is here instead of images.h because it's modified dynamically by the drawBattery function
+uint8_t imgBattery[16] = {0xff, 0xfe, 0x80, 0x02, 0x80, 0x03, 0x80, 0x01, 0x80, 0x01, 0x80, 0x03, 0x80, 0x02, 0xff, 0xfe};
 
 // OEM Config File
 static const char *oemConfigFile = "/prefs/oem.proto";
@@ -101,6 +86,49 @@ static uint16_t displayWidth, displayHeight;
 #ifndef SCREEN_TRANSITION_MSECS
 #define SCREEN_TRANSITION_MSECS 300
 #endif
+
+// Draw power bars or a charging indicator on an image of a battery, determined by battery charge voltage or percentage.
+static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *imgBuffer, const PowerStatus *powerStatus)
+{
+    static const uint8_t powerBar[4] = {0xc0, 0xc0, 0xc0, 0xc0};
+    static const uint8_t lightning[8] = {0xA1, 0xA1, 0xA5, 0xAD, 0xB5, 0xA5, 0x85, 0x85};
+    // Clear the bar area on the battery image
+    for (int i = 1; i < 14; i++) {
+        imgBuffer[i] = 0x81;
+    }
+    // If charging, draw a charging indicator
+    if (powerStatus->getIsCharging()) {
+        memcpy(imgBuffer + 3, lightning, 8);
+        // If not charging, Draw power bars
+    } else {
+        // for (int i = 0; i < 4; i++) {
+        //     if (powerStatus->getBatteryChargePercent() >= 25 * i){
+        //         int x1 = (i + 1) * 3;
+        //         for (int16_t j = 3; j < 4; j++)
+        //         {
+        //             for (int16_t i = x1; i < 2; i++)
+        //             {
+        //                 imgBuffer[i*j] = 1;
+        //             }
+        //         }
+        //     }
+        //         // memcpy(imgBuffer + 1 + (i * 3), powerBar, 4);
+        // }
+    }
+    //display->drawFastImage(x, y, 16, 8, imgBuffer);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->setFont(FONT_SMALL);
+    char battString[5];
+    if (powerStatus->getIsCharging()) {
+        // unable to detect if charging yet display->drawString(x + SCREEN_WIDTH/2, y + FONT_HEIGHT_SMALL, "Charging");
+    } else {
+        
+        sprintf(battString, "%u %%", powerStatus->getBatteryChargePercent());
+        display->drawString(x, y, battString); 
+    }
+}
+
+
 
 /**
  * Draw the icon with extra info printed around the corners
@@ -346,68 +374,33 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     // be wrapped. Currently only spaces and "-" are allowed for wrapping
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    String sender = (node && node->has_user) ? node->user.short_name : "???";
-    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 - FONT_HEIGHT_MEDIUM * 3, sender);
+    String sender = (node && node->has_user) ? node->user.long_name : "???";
+    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 - FONT_HEIGHT_MEDIUM, sender);
     display->setFont(FONT_SMALL);
+    uint32_t time_ago = getValidTime(RTCQuality::RTCQualityDevice) - mp.rx_time;
+    static char lastStr[20];
+    if (time_ago < 120) // last 2 mins?
+        snprintf(lastStr, sizeof(lastStr), "%u seconds ago", time_ago);
+    else if (time_ago < 120 * 60) // last 2 hrs
+        snprintf(lastStr, sizeof(lastStr), "%u minutes ago", time_ago / 60);
+    else {
+        uint32_t hours_in_month = 730;
 
+        // Only show hours ago if it's been less than 6 months. Otherwise, we may have bad
+        //   data.
+        if ((time_ago / 60 / 60) < (hours_in_month * 6)) {
+            snprintf(lastStr, sizeof(lastStr), "%u hours ago", time_ago / 60 / 60);
+        } else {
+            snprintf(lastStr, sizeof(lastStr), "A long time ago");
+        }
+    }
     // the max length of this buffer is much longer than we can possibly print
     static char tempBuf[96];
-    snprintf(tempBuf, sizeof(tempBuf), "         %s", mp.decoded.payload.bytes);
+    snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
 
-    display->drawStringMaxWidth(x, y + display->getHeight() / 2, SCREEN_WIDTH - (6 + x), tempBuf);
+    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2, tempBuf);
+    display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 + 30, lastStr);
 }
-
-/// Draw a series of fields in a column, wrapping to multiple colums if needed
-static void drawColumns(OLEDDisplay *display, int16_t x, int16_t y, const char **fields)
-{
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    const char **f = fields;
-    int xo = x, yo = y;
-    while (*f) {
-        display->drawString(xo, yo, *f);
-        yo += FONT_HEIGHT_SMALL;
-        if (yo > SCREEN_HEIGHT - FONT_HEIGHT_SMALL) {
-            xo += SCREEN_WIDTH / 2;
-            yo = 0;
-        }
-        f++;
-    }
-}
-
-#if 0
-    /// Draw a series of fields in a row, wrapping to multiple rows if needed
-    /// @return the max y we ended up printing to
-    static uint32_t drawRows(OLEDDisplay *display, int16_t x, int16_t y, const char **fields)
-    {
-        // The coordinates define the left starting point of the text
-        display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-        const char **f = fields;
-        int xo = x, yo = y;
-        const int COLUMNS = 2; // hardwired for two columns per row....
-        int col = 0;           // track which column we are on
-        while (*f) {
-            display->drawString(xo, yo, *f);
-            xo += SCREEN_WIDTH / COLUMNS;
-            // Wrap to next row, if needed.
-            if (++col >= COLUMNS) {
-                xo = x;
-                yo += FONT_HEIGHT_SMALL;
-                col = 0;
-            }
-            f++;
-        }
-        if (col != 0) {
-            // Include last incomplete line in our total.
-            yo += FONT_HEIGHT_SMALL;
-        }
-
-        return yo;
-    }
-#endif
-
 
 namespace
 {
@@ -528,11 +521,114 @@ static void drawCompassHeading(OLEDDisplay *display, int16_t compassX, int16_t c
     drawLine(display, N1, N4);
 }
 
+int simpleBearingTo(double lat1, double lon1, double lat2, double lon2){
+    double veryclose = 0.00001; // 1.11m
+    double close = 0.0001; // 11.1m
+    double mid = 0.001; // 111.1m
+    int north_south = 0;
+    int east_west = 0;
+
+    if (lat1 < lat2){
+        // 2 is north of 1
+        north_south = 1;
+    } else if (lat2 < lat1){
+        // 2 is south of 1
+        north_south = -1;
+    }
+
+    if (lon1 < lon2){
+        // 2 is east of 1
+        east_west = 1;
+    } else if (lon2 < lon1){
+        // 2 is west of 1
+        east_west = -1;
+    }
+
+    double lat_difference = abs(lat1-lat2);
+    if (lat_difference <= veryclose){
+        north_south = 0;
+    } else if (lat_difference <= close){
+        north_south = north_south;
+    } else if (lat_difference <= mid){
+        north_south = north_south * 2;
+    } else{
+        north_south = north_south * 3;
+    }
+
+    double lon_difference = abs(lon1-lon2);
+    if (lon_difference <= veryclose){
+        east_west = 0;
+    } else if (lon_difference <= close){
+        east_west = east_west;
+    } else if (lon_difference <= mid){
+        east_west = east_west * 2;
+    } else{
+        east_west = east_west * 3;
+    }
+
+    
+    return (int)(RAD_TO_DEG * atan2(east_west, north_south));
+}
+
+
+int altsimpleBearingTo(double lat1, double lon1, double lat2, double lon2){
+    double veryclose = 0.00001; // 1.11m
+    double close = 0.0001; // 11.1m
+    double mid = 0.001; // 111.1m
+    int north_south = 0;
+    int east_west = 0;
+
+    if (lat1 < lat2){
+        // 2 is north of 1
+        north_south = 1;
+    } else if (lat2 < lat1){
+        // 2 is south of 1
+        north_south = -1;
+    }
+
+    if (lon1 < lon2){
+        // 2 is east of 1
+        east_west = 1;
+    } else if (lon2 < lon1){
+        // 2 is west of 1
+        east_west = -1;
+    }
+
+    double lat_difference = abs(lat1-lat2);
+    if (lat_difference <= veryclose){
+        north_south = 0;
+    } else if (lat_difference <= close){
+        north_south = north_south;
+    } else if (lat_difference <= mid){
+        north_south = north_south * 2;
+    } else{
+        north_south = north_south * 3;
+    }
+
+    double lon_difference = abs(lon1-lon2);
+    if (lon_difference <= veryclose){
+        east_west = 0;
+    } else if (lon_difference <= close){
+        east_west = east_west;
+    } else if (lon_difference <= mid){
+        east_west = east_west * 2;
+    } else{
+        east_west = east_west * 3;
+    }
+
+    
+    return (int)(RAD_TO_DEG * atan2(north_south, east_west));
+}
+
 /// Convert an integer GPS coords to a floating point
 #define DegD(i) (i * 1e-7)
 
 static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
+    if (state->frameState == SELECTED){
+        screen->debug_info()->drawFrameText(display, state, x, y);
+        return;
+    }
     // We only advance our nodeIndex if the frame # has changed - because
     // drawNodeInfo will be called repeatedly while the frame is shown
     if (state->currentFrame != prevFrame) {
@@ -580,51 +676,99 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     }
 
     static char distStr[20];
-    strcpy(distStr, "? km"); // might not have location data
+    strcpy(distStr, "? m"); // might not have location data
     NodeInfo *ourNode = nodeDB.getNode(nodeDB.getNodeNum());
+    MeshPacket &mp = devicestate.rx_text_message;
 
     // coordinates for the center of the compass/circle
     bool hasNodeHeading = false;
+    char headingbuf[25]; 
     float bearingToOther = -1;
-    float headingRadian = -1;
+    int16_t degree = 0;
+    // float headingRadian = -1;
     if (ourNode && hasPosition(ourNode)) {
         Position &op = ourNode->position;
-        float myHeading = estimatedHeading(DegD(op.latitude_i), DegD(op.longitude_i));
-
+        
+        int16_t myHeading = heading->getHeading();
+        screen->displayingHeading = true;
         if (hasPosition(node)) {
             // display direction toward node
             hasNodeHeading = true;
+            
             Position &p = node->position;
             float d =
                 GeoCoord::latLongToMeter(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
+            bearingToOther = GeoCoord::bearing(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
+            int bearingToOtherDeg = bearingToOther * RAD_TO_DEG;
             if (d < 2000)
-                snprintf(distStr, sizeof(distStr), "%.0f m", d);
+                snprintf(distStr, sizeof(distStr), "%.1fm %s", d, TinyGPSPlus::cardinal(bearingToOtherDeg));
             else
-                snprintf(distStr, sizeof(distStr), "%.1f km", d / 1000);
+                snprintf(distStr, sizeof(distStr), "%.1fkm %s", d / 1000, TinyGPSPlus::cardinal(bearingToOtherDeg));
+            
+            // int simpleBearingToOther = simpleBearingTo(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
+            // int altSimpleBearingToOther = altsimpleBearingTo(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
+            
+            // headingRadian = (float)bearingToOther + (float)myHeading * DEG_TO_RAD;
+            // ,
+            degree = myHeading - bearingToOtherDeg;
+            sprintf(headingbuf, "%s A-%d R-%d",  
+                    (int)(bearingToOtherDeg),
+                    degree
+            );
+            
+            degree = myHeading - bearingToOtherDeg;
+            uint16_t radius = 110;
+            uint16_t thickness = 10;
+            uint16_t width = 5;
+            uint16_t x1 = (float)radius * cos(bearingToOther) + SCREEN_WIDTH / 2;
+            uint16_t y1 = (float)radius * sin(bearingToOther) + SCREEN_HEIGHT /2;
+            display->setFont(FONT_SMALL);
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            display->drawString(x1, y1, String("A"));
+            degree =  bearingToOtherDeg - myHeading;
+            display->drawArc(SCREEN_WIDTH/2, 
+                                SCREEN_HEIGHT/2, 
+                                radius - thickness /2 , 
+                                radius + thickness /2, 
+                                degree - width, 
+                                degree + width);
 
-            // FIXME, also keep the guess at the operators heading and add/substract
-            // it.  currently we don't do this and instead draw north up only.
-            bearingToOther =
-                GeoCoord::bearing(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            headingRadian = bearingToOther - myHeading;
         }
+        uint16_t radius = 100;
+        uint16_t x = (float)radius * cos(((float)myHeading - 90.0) * DEG_TO_RAD) + SCREEN_WIDTH / 2;
+        uint16_t y = (float)radius * sin(((float)myHeading - 90.0) * DEG_TO_RAD) + SCREEN_HEIGHT /2;
+        display->setFont(FONT_SMALL);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->drawString(x, y, String("N"));
     }
-    char headingbuf[12]; 
+    
     if (!hasNodeHeading){
-        sprintf(headingbuf, "%s - %d", TinyGPSPlus::cardinal(headingRadian), (int)headingRadian);
-    } else {
         sprintf(headingbuf, "No heading");
     }
 
     display->setFont(FONT_SMALL);
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-    int lines = 5;
+    int lines = 6;
+    NodeInfo *msg_node = nodeDB.getNode(getFrom(&mp));
+    static char tempBuf[30];
+    memset(tempBuf, '\0', 30);
+    if (ourNode->num == msg_node->num){
+        // Demo for drawStringMaxWidth:
+        // with the third parameter you can define the width after which words will
+        // be wrapped. Currently only spaces and "-" are allowed for wrapping
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->setFont(FONT_SMALL);
+
+        // the max length of this buffer is much longer than we can possibly print
+        snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);      
+    }
     char *to_display[] = {
         username,
         distStr,
         lastStr,
         signalStr,
-        headingbuf
+        headingbuf,
+        tempBuf
     };
     int center = SCREEN_WIDTH/2;
     for (int line = 0; line < lines; line++){
@@ -638,52 +782,56 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
           display->drawString(center, height, String(to_display[line]));
         }
     }
-    uint16_t degree = RAD_TO_DEG * headingRadian;
-    uint16_t radius = 110;
-    uint16_t thickness = 10;
-    uint16_t width = 5;
-    /*
-    if (distance <= 20){
-        thickness = -5.33 * distance + 116.66;
-        if (thickness > 90){
-            thickness = 180;
-        }
-    } 
-    */ 
-    if (state->frameState == IN_TRANSITION){
-       float progress = (float) 10 * state->ticksSinceLastStateSwitch / (500.0 / 33.0);
-       width = (int) progress;
-    }
-    display->drawArc(SCREEN_WIDTH/2, 
-                        SCREEN_HEIGHT/2, 
-                        radius - thickness /2 , 
-                        radius + thickness /2, 
-                        degree - width, 
-                        degree + width);
+    
+
+    
 }
 
-#if 0
-void _screen_header()
+void screen_header(OLEDDisplay *display,  OLEDDisplayUiState* state)
 {
-    if (!disp)
-        return;
-
-    // Message count
-    //snprintf(buffer, sizeof(buffer), "#%03d", ttn_get_count() % 1000);
-    //display->setTextAlignment(TEXT_ALIGN_LEFT);
-    //display->drawString(0, 2, buffer);
-
     // Datetime
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->drawString(display->getWidth()/2, 2, gps.getTimeStr());
+    uint32_t rtc_sec = getValidTime(RTCQuality::RTCQualityDevice);
+    char timebuf[20];
+    if (rtc_sec > 0) {
+        long hms = rtc_sec % SEC_PER_DAY;
+        // hms += tz.tz_dsttime * SEC_PER_HOUR;
+        // hms -= tz.tz_minuteswest * SEC_PER_MIN;
+        // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
+        hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
 
+        // Tear apart hms into h:m:s
+        // Change me for timezones
+        int hour = hms / SEC_PER_HOUR + 11;
+        if (hour >= 24){
+            hour -= 24;
+        }
+        int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
+        sprintf(timebuf, "%02d:%02d", hour, min);
+        display->setFont(FONT_SMALL);
+    }
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->drawString(display->getWidth()/2, 10, timebuf);
+    
+    if (strlen(ipaddress) > 0) {
+        display->drawString(display->getWidth()/2, 20, ipaddress);
+    } else {
+         if (powerStatus->getHasBattery())
+            drawBattery(display,display->getWidth()/2, 20, imgBattery, powerStatus);
+        // else if (powerStatus->knowsUSB())
+        //     display->drawFastImage(display->getWidth()/2+20, 20 + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
+        
+        //drawBattery(display, display->getWidth()/2-20, 20, imgBattery, powerStatus);
+        if (gpsStatus->getHasLock())
+            display->drawFastImage(display->getWidth()/2-30, 20, 8, 8, imgSatellite);
+    }
+
+    
     // Satellite count
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    char buffer[10];
-    display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps.satellites.value(), buffer, 10));
-    display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);
+    // display->setTextAlignment(TEXT_ALIGN_RIGHT);
+    // char buffer[10];
+    // display->drawString(display->getWidth() - SATELLITE_IMAGE_WIDTH - 4, 2, itoa(gps.satellites.value(), buffer, 10));
+    // display->drawXbm(display->getWidth() - SATELLITE_IMAGE_WIDTH, 0, SATELLITE_IMAGE_WIDTH, SATELLITE_IMAGE_HEIGHT, SATELLITE_IMAGE);
 }
-#endif
 
 Screen::Screen() : OSThread("Screen"), cmdQueue(32), dispdev(), ui(&dispdev)
 {
@@ -755,7 +903,8 @@ void Screen::setup()
     static const int bootFrameCount = sizeof(bootFrames) / sizeof(bootFrames[0]);
     ui.setFrames(bootFrames, bootFrameCount);
     // No overlays.
-    ui.setOverlays(nullptr, 0);
+    static OverlayCallback overlays[] = {screen_header};
+    ui.setOverlays(overlays, 1);
 
     // Require presses to switch between frames.
     ui.disableAutoTransition();
@@ -809,10 +958,10 @@ int32_t Screen::runOnce()
         return RUN_SAME;
     }
 
-    // Show boot screen for first 5 seconds, then switch to normal operation.
+    // Show boot screen for first 3 seconds, then switch to normal operation.
     // serialSinceMsec adjusts for additional serial wait time during nRF52 bootup
     static bool showingBootScreen = true;
-    if (showingBootScreen && (millis() > (5000 + serialSinceMsec))) {
+    if (showingBootScreen && (millis() > (3000 + serialSinceMsec))) {
         DEBUG_MSG("Done with boot screen...\n");
         stopBootScreen();
         showingBootScreen = false;
@@ -905,19 +1054,19 @@ int32_t Screen::runOnce()
     // Switch to a low framerate (to save CPU) when we are not in transition
     // but we should only call setTargetFPS when framestate changes, because
     // otherwise that breaks animations.
-    if (targetFramerate != IDLE_FRAMERATE && (ui.getUiState()->frameState == FIXED || ui.getUiState()->frameState == SELECTED)) {
+    if (targetFramerate != IDLE_FRAMERATE && (ui.getUiState()->frameState == FIXED || ui.getUiState()->frameState == SELECTED) && !displayingHeading) {
         // oldFrameState = ui.getUiState()->frameState;
         DEBUG_MSG("Setting idle framerate\n");
         targetFramerate = IDLE_FRAMERATE;
 
-#ifndef NO_ESP32
-        setCPUFast(false); // Turn up the CPU to improve screen animations
-#endif
+        #ifndef NO_ESP32
+                setCPUFast(false); // Turn up the CPU to improve screen animations
+        #endif
 
         ui.setTargetFPS(targetFramerate);
         forceDisplay();
     }
-
+    displayingHeading = false;
     // While showing the bootscreen or Bluetooth pair screen all of our
     // standard screen switching is stopped.
     if (showingNormalScreen) {
@@ -953,12 +1102,6 @@ void Screen::drawInfoTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state,
 {
     Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
     screen2->debugInfo.drawFrameInfo(display, state, x, y);
-}
-
-void Screen::drawSettingTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
-{
-    Screen *screen2 = reinterpret_cast<Screen *>(state->userData);
-    screen2->debugInfo.drawFrameSetting(display, state, x, y);
 }
 
 void Screen::drawFakeNodeTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
@@ -1052,10 +1195,9 @@ void Screen::setFrames()
     //normalFrames[numframes++] = &Screen::drawDebugInfoTrampoline;
 
     // call a method on debugInfoScreen object (for more details)
-    //normalFrames[numframes++] = &Screen::drawDebugInfoSettingsTrampoline;
+    normalFrames[numframes++] = &Screen::drawDebugInfoSettingsTrampoline;
     normalFrames[numframes++] = &Screen::drawInfoTrampoline;
-    normalFrames[numframes++] = &Screen::drawSettingTrampoline;
-    normalFrames[numframes++] = &Screen::drawFakeNodeTrampoline;
+    //normalFrames[numframes++] = &Screen::drawFakeNodeTrampoline;
     #ifndef NO_ESP32
     #ifdef WANT_WIFI
         if (isWifiAvailable()) {
@@ -1144,8 +1286,10 @@ void Screen::handlePrint(const char *text)
 
 void Screen::handleOnPress(uint8_t dir)
 {
-    // If screen was off, just wake it, otherwise advance to next frame
-    // If we are in a transition, the press must have bounced, drop it.
+    if (!screenOn){
+        handleSetOn(true);
+        return;
+    }
     if (ui.getUiState()->frameState == FIXED) {
         if (dir == PRESS_DOWN){
             ui.nextFrame();
@@ -1154,7 +1298,6 @@ void Screen::handleOnPress(uint8_t dir)
         }
         DEBUG_MSG("Setting LastScreenTransition\n");
         lastScreenTransition = millis();
-        setFastFramerate();
     } else if (ui.getUiState()->frameState == SELECTED){
         DEBUG_MSG("Changing index\n");
         if (dir == PRESS_DOWN){
@@ -1163,23 +1306,29 @@ void Screen::handleOnPress(uint8_t dir)
             ui.previousIndex();
         }
         lastScreenTransition = millis();
-        setFastFramerate();
     }
+    setFastFramerate();
 }
 
 void Screen::handleLongPress(uint8_t dir)
 {
-    
     OLEDDisplayUiState* state = ui.getUiState();
+    if (!screenOn){
+        handleSetOn(true);
+        return;
+    }
     if (state->frameState == FIXED) {
         if (dir == PRESS_DOWN){
             // Transition to selected
-            ui.getUiState()->frameState = SELECTED;
+            state->frameState = SELECTED;
             state->currentIndex = 0;
             DEBUG_MSG("Switching to selected");
+        
         } else {
             // Power down
-            DEBUG_MSG("Powerdown (do nothing for now");
+            DEBUG_MSG("Powerdown display");
+            handleSetOn(false);
+            
         }
     } else if (state->frameState == SELECTED){
         if (dir == PRESS_DOWN){
@@ -1194,24 +1343,23 @@ void Screen::handleLongPress(uint8_t dir)
                 // We are trying to advance through the setting ie by selecting and saving
                 // or chosing the next character
                 DEBUG_MSG("Advancing in a setting");
-                state->select = true;
+                state->action = SELECT;
             }
         } else {
             if (state->currentSetting == -1){
                 // No setting is selected to modify so we can transition to the main screen
-                ui.getUiState()->frameState = FIXED;
+                state->frameState = FIXED;
                 state->currentIndex = 0;
                 DEBUG_MSG("Going back to regular page");
             } else {
-                // We are exiting the current setting so need to save it
-                // SAVE THE SETTING HERE
-                state->currentIndex = state->currentSetting;
-                state->currentSetting = -1;
+                // We are exiting the current setting so need to save it the frame will organise the exit
+                state->action = SAVE;
                 DEBUG_MSG("Saving setting");
             }
 
         }
     }
+    setFastFramerate();
 }
 
 #ifndef SCREEN_TRANSITION_FRAMERATE

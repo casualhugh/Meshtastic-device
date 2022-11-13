@@ -28,7 +28,7 @@ void setupModules()
     adminModule = new AdminModule();
     nodeInfoModule = new NodeInfoModule();
     positionModule = new PositionModule();
-    // textMessageModule = new TextMessageModule();
+    textMessageModule = new TextMessageModule();
     
     // Note: if the rest of meshtastic doesn't need to explicitly use your module, you do not need to assign the instance
     // to a global variable.

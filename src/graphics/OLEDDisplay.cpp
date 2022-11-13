@@ -40,7 +40,6 @@ bool OLEDDisplay::init() {
   canvas->fillScreen(BLACK);
   canvas->flush();
   
-  //digitalWrite(SCREEN_BL, HIGH); 
   return true;
 }
 
@@ -247,11 +246,13 @@ void OLEDDisplay::setFont(const uint8_t fontSize) {
 
 void OLEDDisplay::displayOn(void) {
     digitalWrite(PULLUP_LCD, HIGH);
-    
+    isDisplayOn = true;
 }
 
 void OLEDDisplay::displayOff(void) {
     digitalWrite(PULLUP_LCD, LOW);
+    ledcWrite(0, 0); 
+    isDisplayOn = false;
 }
 
 void OLEDDisplay::invertDisplay(void) {
@@ -264,6 +265,7 @@ void OLEDDisplay::setContrast(uint8_t contrast, uint8_t precharge, uint8_t comde
 }
 
 void OLEDDisplay::setBrightness(uint8_t brightness) {
+  this->brightness = brightness;
   ledcWrite(0, brightness); 
 }
 
