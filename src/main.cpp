@@ -11,7 +11,7 @@
 // #include "rom/rtc.h"
 //#include "DSRRouter.h"
 #include "ReliableRouter.h"
-#include "debug.h"
+// #include "debug.h"
 #include "FSCommon.h"
 #include "RTC.h"
 #include "SPILock.h"
