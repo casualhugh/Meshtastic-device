@@ -94,7 +94,7 @@ class AnalogBatteryLevel : public HasBatteryLevel
             uint32_t raw = analogRead(BATTERY_PIN);
             float scaled;
 #ifndef VBAT_RAW_TO_SCALED
-            scaled = 1000.0 * operativeAdcMultiplier * (AREF_VOLTAGE / 1024.0) * raw;
+            scaled = 1000.0 * operativeAdcMultiplier * (AREF_VOLTAGE / 1024.0) * raw + 300;
 #else
             scaled = VBAT_RAW_TO_SCALED(raw); // defined in variant.h
 #endif

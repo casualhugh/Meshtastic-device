@@ -18,7 +18,16 @@ class Heading
     void enable();
     void disable();
     uint16_t getHeading();
-
+    int32_t maxes[3] = {
+      -2147483647,
+      -2147483647,
+      -2147483647
+    };
+    int32_t mins[3] = {
+      2147483647,
+      2147483647,
+      2147483647
+    };
   protected:
     LSM303AGR_ACC_Sensor* acc;
     LSM303AGR_MAG_Sensor* mag;
@@ -34,20 +43,11 @@ class Heading
     };
     double bias[3] = 
     {
-      -376.50,
-      188.00,
-      -52.50
-    };  
-    int32_t maxes[3] = {
       0,
       0,
       0
-    };
-    int32_t mins[3] = {
-      2147483647,
-      2147483647,
-      2147483647
-    };
+    };  
+    
     int32_t count = 0;
     float last_values[10];
     float getAverage(float last);

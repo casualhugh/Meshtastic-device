@@ -389,7 +389,7 @@ float GeoCoord::bearing(double lat1, double lon1, double lat2, double lon2)
     double deltaLonRad = toRadians(lon2 - lon1);
     double y = sin(deltaLonRad) * cos(lat2Rad);
     double x = cos(lat1Rad) * sin(lat2Rad) - (sin(lat1Rad) * cos(lat2Rad) * cos(deltaLonRad));
-    return atan2(y, x);
+    return atan2(x, y);
 }
 
 /**

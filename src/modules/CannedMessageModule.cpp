@@ -108,7 +108,7 @@ void CannedMessageModule::eventDown(){
 
 void CannedMessageModule::eventSelect(){
     this->runState = CANNED_MESSAGE_RUN_STATE_ACTION_SELECT;
-    setIntervalFromNow(0);
+    setIntervalFromNow(1);
 }
 
 int CannedMessageModule::handleInputEvent(const InputEvent *event)
@@ -161,7 +161,7 @@ void CannedMessageModule::sendText(NodeNum dest, const char *message, bool wantR
     p->decoded.payload.size = strlen(message);
     memcpy(p->decoded.payload.bytes, message, p->decoded.payload.size);
     if (moduleConfig.canned_message.send_bell) {
-        p->decoded.payload.bytes[p->decoded.payload.size - 1] = 7; // Bell character
+        // p->decoded.payload.bytes[p->decoded.payload.size - 1] = 7; // Bell character
         p->decoded.payload.bytes[p->decoded.payload.size] = '\0';  // Bell character
         p->decoded.payload.size++;
     }

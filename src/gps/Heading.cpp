@@ -67,7 +67,7 @@ void Heading::disable(){
 void Heading::recalculate_bias(){
   for (int i = 0; i < 3; i++){
     if (mins[i] < maxes[i]){
-      bias[i] = (int)((float)maxes[i] + (float)mins[i]) / 2.0;
+      bias[i] = ((double)maxes[i] + (double)mins[i]) / 2.0;
     }
   }
 }

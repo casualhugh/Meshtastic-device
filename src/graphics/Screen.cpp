@@ -366,12 +366,7 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
 
     MeshPacket &mp = devicestate.rx_text_message;
     NodeInfo *node = nodeDB.getNode(getFrom(&mp));
-    // DEBUG_MSG("drawing text message from 0x%x: %s\n", mp.from,
-    // mp.decoded.variant.data.decoded.bytes);
 
-    // Demo for drawStringMaxWidth:
-    // with the third parameter you can define the width after which words will
-    // be wrapped. Currently only spaces and "-" are allowed for wrapping
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
     String sender = (node && node->has_user) ? node->user.long_name : "???";
@@ -396,82 +391,13 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     }
     // the max length of this buffer is much longer than we can possibly print
     static char tempBuf[96];
-    snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
+    memset(tempBuf, '\0', sizeof(tempBuf));
+    snprintf(tempBuf, sizeof(tempBuf), "%s ", mp.decoded.payload.bytes);
 
     display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2, tempBuf);
     display->drawString(x + SCREEN_WIDTH/2, y + display->getHeight() / 2 + 30, lastStr);
 }
 
-namespace
-{
-
-/// A basic 2D point class for drawing
-class Point
-{
-  public:
-    float x, y;
-
-    Point(float _x, float _y) : x(_x), y(_y) {}
-
-    /// Apply a rotation around zero (standard rotation matrix math)
-    void rotate(float radian)
-    {
-        float cos = cosf(radian), sin = sinf(radian);
-        float rx = x * cos - y * sin, ry = x * sin + y * cos;
-
-        x = rx;
-        y = ry;
-    }
-
-    void translate(int16_t dx, int dy)
-    {
-        x += dx;
-        y += dy;
-    }
-
-    void scale(float f)
-    {
-        x *= f;
-        y *= f;
-    }
-};
-
-} // namespace
-
-static void drawLine(OLEDDisplay *d, const Point &p1, const Point &p2)
-{
-    d->drawLine(p1.x, p1.y, p2.x, p2.y);
-}
-
-/**
- * Given a recent lat/lon return a guess of the heading the user is walking on.
- *
- * We keep a series of "after you've gone 10 meters, what is your heading since
- * the last reference point?"
- */
-static float estimatedHeading(double lat, double lon)
-{
-    static double oldLat, oldLon;
-    static float b;
-
-    if (oldLat == 0) {
-        // just prepare for next time
-        oldLat = lat;
-        oldLon = lon;
-
-        return b;
-    }
-
-    float d = GeoCoord::latLongToMeter(oldLat, oldLon, lat, lon);
-    if (d < 10) // haven't moved enough, just keep current bearing
-        return b;
-
-    b = GeoCoord::bearing(oldLat, oldLon, lat, lon);
-    oldLat = lat;
-    oldLon = lon;
-
-    return b;
-}
 
 /// Sometimes we will have Position objects that only have a time, so check for
 /// valid lat/lon
@@ -485,140 +411,6 @@ static bool hasPosition(NodeInfo *n)
 static size_t nodeIndex;
 static int8_t prevFrame = -1;
 
-// Draw the arrow pointing to a node's location
-static void drawNodeHeading(OLEDDisplay *display, int16_t compassX, int16_t compassY, float headingRadian)
-{
-    Point tip(0.0f, 0.5f), tail(0.0f, -0.5f); // pointing up initially
-    float arrowOffsetX = 0.2f, arrowOffsetY = 0.2f;
-    Point leftArrow(tip.x - arrowOffsetX, tip.y - arrowOffsetY), rightArrow(tip.x + arrowOffsetX, tip.y - arrowOffsetY);
-
-    Point *arrowPoints[] = {&tip, &tail, &leftArrow, &rightArrow};
-
-    for (int i = 0; i < 4; i++) {
-        arrowPoints[i]->rotate(headingRadian);
-        arrowPoints[i]->scale(COMPASS_DIAM * 0.6);
-        arrowPoints[i]->translate(compassX, compassY);
-    }
-    drawLine(display, tip, tail);
-    drawLine(display, leftArrow, tip);
-    drawLine(display, rightArrow, tip);
-}
-
-// Draw the compass heading
-static void drawCompassHeading(OLEDDisplay *display, int16_t compassX, int16_t compassY, float myHeading)
-{
-    Point N1(-0.04f, -0.65f), N2(0.04f, -0.65f);
-    Point N3(-0.04f, -0.55f), N4(0.04f, -0.55f);
-    Point *rosePoints[] = {&N1, &N2, &N3, &N4};
-
-    for (int i = 0; i < 4; i++) {
-        rosePoints[i]->rotate(myHeading);
-        rosePoints[i]->scale(-1 * COMPASS_DIAM);
-        rosePoints[i]->translate(compassX, compassY);
-    }
-    drawLine(display, N1, N3);
-    drawLine(display, N2, N4);
-    drawLine(display, N1, N4);
-}
-
-int simpleBearingTo(double lat1, double lon1, double lat2, double lon2){
-    double veryclose = 0.00001; // 1.11m
-    double close = 0.0001; // 11.1m
-    double mid = 0.001; // 111.1m
-    int north_south = 0;
-    int east_west = 0;
-
-    if (lat1 < lat2){
-        // 2 is north of 1
-        north_south = 1;
-    } else if (lat2 < lat1){
-        // 2 is south of 1
-        north_south = -1;
-    }
-
-    if (lon1 < lon2){
-        // 2 is east of 1
-        east_west = 1;
-    } else if (lon2 < lon1){
-        // 2 is west of 1
-        east_west = -1;
-    }
-
-    double lat_difference = abs(lat1-lat2);
-    if (lat_difference <= veryclose){
-        north_south = 0;
-    } else if (lat_difference <= close){
-        north_south = north_south;
-    } else if (lat_difference <= mid){
-        north_south = north_south * 2;
-    } else{
-        north_south = north_south * 3;
-    }
-
-    double lon_difference = abs(lon1-lon2);
-    if (lon_difference <= veryclose){
-        east_west = 0;
-    } else if (lon_difference <= close){
-        east_west = east_west;
-    } else if (lon_difference <= mid){
-        east_west = east_west * 2;
-    } else{
-        east_west = east_west * 3;
-    }
-
-    
-    return (int)(RAD_TO_DEG * atan2(east_west, north_south));
-}
-
-
-int altsimpleBearingTo(double lat1, double lon1, double lat2, double lon2){
-    double veryclose = 0.00001; // 1.11m
-    double close = 0.0001; // 11.1m
-    double mid = 0.001; // 111.1m
-    int north_south = 0;
-    int east_west = 0;
-
-    if (lat1 < lat2){
-        // 2 is north of 1
-        north_south = 1;
-    } else if (lat2 < lat1){
-        // 2 is south of 1
-        north_south = -1;
-    }
-
-    if (lon1 < lon2){
-        // 2 is east of 1
-        east_west = 1;
-    } else if (lon2 < lon1){
-        // 2 is west of 1
-        east_west = -1;
-    }
-
-    double lat_difference = abs(lat1-lat2);
-    if (lat_difference <= veryclose){
-        north_south = 0;
-    } else if (lat_difference <= close){
-        north_south = north_south;
-    } else if (lat_difference <= mid){
-        north_south = north_south * 2;
-    } else{
-        north_south = north_south * 3;
-    }
-
-    double lon_difference = abs(lon1-lon2);
-    if (lon_difference <= veryclose){
-        east_west = 0;
-    } else if (lon_difference <= close){
-        east_west = east_west;
-    } else if (lon_difference <= mid){
-        east_west = east_west * 2;
-    } else{
-        east_west = east_west * 3;
-    }
-
-    
-    return (int)(RAD_TO_DEG * atan2(north_south, east_west));
-}
 
 /// Convert an integer GPS coords to a floating point
 #define DegD(i) (i * 1e-7)
@@ -682,8 +474,8 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
 
     // coordinates for the center of the compass/circle
     bool hasNodeHeading = false;
-    char headingbuf[25]; 
-    float bearingToOther = -1;
+    static char headingbuf[35]; 
+    float bearingToOther = -1.0;
     int16_t degree = 0;
     // float headingRadian = -1;
     if (ourNode && hasPosition(ourNode)) {
@@ -697,44 +489,42 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
             
             Position &p = node->position;
             float d =
-                GeoCoord::latLongToMeter(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            bearingToOther = GeoCoord::bearing(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            int bearingToOtherDeg = bearingToOther * RAD_TO_DEG;
+                GeoCoord::latLongToMeter(DegD(op.latitude_i), DegD(op.longitude_i), DegD(p.latitude_i), DegD(p.longitude_i));
+            bearingToOther = GeoCoord::bearing(DegD(op.latitude_i), DegD(op.longitude_i), DegD(p.latitude_i), DegD(p.longitude_i));
+            int16_t bearingToOtherDeg = bearingToOther * RAD_TO_DEG;
+            int16_t degree_for_cardinal = 360 - bearingToOtherDeg + 90;
+            while (degree_for_cardinal < 0){
+                degree_for_cardinal += 360;
+            }
             if (d < 2000)
-                snprintf(distStr, sizeof(distStr), "%.1fm %s", d, TinyGPSPlus::cardinal(bearingToOtherDeg));
+                snprintf(distStr, sizeof(distStr), "%.0fm %s", d, TinyGPSPlus::cardinal(degree_for_cardinal));
             else
-                snprintf(distStr, sizeof(distStr), "%.1fkm %s", d / 1000, TinyGPSPlus::cardinal(bearingToOtherDeg));
-            
-            // int simpleBearingToOther = simpleBearingTo(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            // int altSimpleBearingToOther = altsimpleBearingTo(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
-            
-            // headingRadian = (float)bearingToOther + (float)myHeading * DEG_TO_RAD;
-            // ,
+                snprintf(distStr, sizeof(distStr), "%.1fkm %s", d / 1000, TinyGPSPlus::cardinal(degree_for_cardinal));
             degree = myHeading - bearingToOtherDeg;
-            sprintf(headingbuf, "%s A-%d R-%d",  
-                    (int)(bearingToOtherDeg),
-                    degree
-            );
+            // sprintf(headingbuf, "A-%d R-%d I-%d IR-%d RI-%d",  
+            //         (int)(bearingToOtherDeg),
+            //         degree,
+            //         degree_for_cardinal,
+            //         myHeading - degree_for_cardinal,
+            //         degree_for_cardinal - myHeading
+            // );
             
-            degree = myHeading - bearingToOtherDeg;
-            uint16_t radius = 110;
+            uint16_t radius = 95;
             uint16_t thickness = 10;
             uint16_t width = 5;
-            uint16_t x1 = (float)radius * cos(bearingToOther) + SCREEN_WIDTH / 2;
-            uint16_t y1 = (float)radius * sin(bearingToOther) + SCREEN_HEIGHT /2;
-            display->setFont(FONT_SMALL);
-            display->setTextAlignment(TEXT_ALIGN_CENTER);
-            display->drawString(x1, y1, String("A"));
-            degree =  bearingToOtherDeg - myHeading;
+            // uint16_t x1 = (float)radius * cos(bearingToOther) + SCREEN_WIDTH / 2;
+            // uint16_t y1 = (float)radius * sin(bearingToOther) + SCREEN_HEIGHT /2;
+            // display->setFont(FONT_SMALL);
+            // display->setTextAlignment(TEXT_ALIGN_CENTER);
+            // display->drawString(x1, y1, String("A"));
             display->drawArc(SCREEN_WIDTH/2, 
                                 SCREEN_HEIGHT/2, 
                                 radius - thickness /2 , 
                                 radius + thickness /2, 
                                 degree - width, 
                                 degree + width);
-
         }
-        uint16_t radius = 100;
+        uint16_t radius = 90;
         uint16_t x = (float)radius * cos(((float)myHeading - 90.0) * DEG_TO_RAD) + SCREEN_WIDTH / 2;
         uint16_t y = (float)radius * sin(((float)myHeading - 90.0) * DEG_TO_RAD) + SCREEN_HEIGHT /2;
         display->setFont(FONT_SMALL);
@@ -743,25 +533,29 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     }
     
     if (!hasNodeHeading){
-        sprintf(headingbuf, "No heading");
+        sprintf(headingbuf, "Locating...");
+    } else {
+        sprintf(headingbuf, "");
     }
 
-    display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    int lines = 6;
     NodeInfo *msg_node = nodeDB.getNode(getFrom(&mp));
     static char tempBuf[30];
-    memset(tempBuf, '\0', 30);
-    if (ourNode->num == msg_node->num){
-        // Demo for drawStringMaxWidth:
-        // with the third parameter you can define the width after which words will
-        // be wrapped. Currently only spaces and "-" are allowed for wrapping
-        display->setTextAlignment(TEXT_ALIGN_CENTER);
-        display->setFont(FONT_SMALL);
-
-        // the max length of this buffer is much longer than we can possibly print
-        snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);      
+    memset(tempBuf, '\0', sizeof(tempBuf));
+    if (node->num == msg_node->num && mp.decoded.payload.size < 30){
+        uint32_t time_ago = getValidTime(RTCQuality::RTCQualityDevice) - mp.rx_time;
+        uint32_t hours_in_month = 730;
+        
+        if (time_ago < 120) { // last 2 mins
+            snprintf(tempBuf, sizeof(tempBuf), "%s - %us ago", mp.decoded.payload.bytes, time_ago);
+        } else if (time_ago < 120 * 60) { // last 2 hrs
+            snprintf(tempBuf, sizeof(tempBuf), "%s - %um ago", mp.decoded.payload.bytes, time_ago / 60);
+        } else if ((time_ago / 60 / 60) < (hours_in_month * 6)) { // Hours in 6 months
+            snprintf(tempBuf, sizeof(tempBuf), "%s - %uh ago", mp.decoded.payload.bytes, time_ago / 60 / 60);
+        } else {
+            snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
+        }
     }
+    int lines = 6;
     char *to_display[] = {
         username,
         distStr,
@@ -770,6 +564,8 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
         headingbuf,
         tempBuf
     };
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     int center = SCREEN_WIDTH/2;
     for (int line = 0; line < lines; line++){
         if (line == 0 || line == 1){
@@ -821,8 +617,15 @@ void screen_header(OLEDDisplay *display,  OLEDDisplayUiState* state)
         //     display->drawFastImage(display->getWidth()/2+20, 20 + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
         
         //drawBattery(display, display->getWidth()/2-20, 20, imgBattery, powerStatus);
-        if (gpsStatus->getHasLock())
-            display->drawFastImage(display->getWidth()/2-30, 20, 8, 8, imgSatellite);
+        if (gpsStatus->getHasLock()){
+            display->drawFastImage(display->getWidth()/2-40, 15, 8, 8, imgSatellite);
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            display->setFont(FONT_SMALL);
+            char satString[4];
+            sprintf(satString, "%d", gpsStatus->getNumSatellites());
+            display->drawString(display->getWidth()/2-20, 22, satString); 
+            
+        }
     }
 
     
@@ -1178,9 +981,9 @@ void Screen::setFrames()
         normalFrames[numframes++] = drawCriticalFaultFrame;
 
     // If we have a text message - show it next, unless it's a phone message and we aren't using any special modules
-    if (devicestate.has_rx_text_message && shouldDrawMessage(&devicestate.rx_text_message)) {
-        normalFrames[numframes++] = drawTextMessageFrame;
-    }
+    // if (devicestate.has_rx_text_message && shouldDrawMessage(&devicestate.rx_text_message)) {
+    //     normalFrames[numframes++] = drawTextMessageFrame;
+    // }
 
     // then all the nodes
     // We only show a few nodes in our scrolling list - because meshes with many nodes would have too many screens

@@ -236,16 +236,16 @@ void resetCannedMsgs(char* buf, uint8_t length){
     
     char str[20];
     memset(str, '\0', 20);
-    sprintf(str, "Okay");
+    sprintf(str, "Okay!!");
     saveCannedMsgOne(str, strlen(str));
     memset(str, '\0', 20);
-    sprintf(str, "Looking 4 U");
+    sprintf(str, "Looking 4 U!!");
     saveCannedMsgTwo(str, strlen(str));
     memset(str, '\0', 20);
-    sprintf(str, "Come 2 me");
+    sprintf(str, "Come 2 me!!");
     saveCannedMsgThree(str, strlen(str));
     memset(str, '\0', 20);
-    sprintf(str, "On my way");
+    sprintf(str, "On my way!!");
     saveCannedMsgFour(str, strlen(str));
     nodeDB.saveToDisk();
     delay(100);
@@ -459,8 +459,10 @@ void DebugInfo::drawFrameInfo(OLEDDisplay *display, OLEDDisplayUiState *state, i
     }
     uint16_t myHeading = heading->getHeading(); //estimatedHeading(DegD(op.latitude_i), DegD(op.longitude_i));
     
-    char headingbuf[12]; 
-    sprintf(headingbuf, "%s - %d", TinyGPSPlus::cardinal((float)myHeading * DEG_TO_RAD), myHeading);
+    char headingbuf[35]; 
+
+
+    sprintf(headingbuf, "%s - %d - %d - %d", TinyGPSPlus::cardinal((float)myHeading), myHeading, heading->mins[0], heading->maxes[0]);
     
 
     char *to_display[] = {
@@ -595,7 +597,7 @@ void DebugInfo::resetFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int1
     display->setFont(FONT_MEDIUM);
     char question[21];
     sprintf(question, "%s?", settings[state->currentSetting]);
-    display->drawString(x + SCREEN_WIDTH/2, 40, question);
+    display->drawString(x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, question);
     display->setFont(FONT_SMALL);
     display->drawString(x + 40, SCREEN_HEIGHT / 4, "Cancel");
     display->drawString(x + 40, 3 * SCREEN_HEIGHT / 4, "Confirm");
