@@ -24,13 +24,13 @@
 
 #include "main.h"
 
-#ifdef HAS_NCP5623
-#include <graphics/RAKled.h>
+// #ifdef HAS_NCP5623
+// #include <graphics/RAKled.h>
 
-uint8_t red = 0;
-uint8_t green = 0;
-uint8_t blue = 0;
-#endif
+// uint8_t red = 0;
+// uint8_t green = 0;
+// uint8_t blue = 0;
+// #endif
 
 #ifndef PIN_BUZZER
 #define PIN_BUZZER false

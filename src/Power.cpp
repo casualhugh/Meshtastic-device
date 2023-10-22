@@ -432,8 +432,6 @@ void Power::shutdown()
 }
 
 /// Reads power status to powerStatus singleton.
-//
-// TODO(girts): move this and other axp stuff to power.h/power.cpp.
 void Power::readPowerStatus()
 {
     if (batteryLevel) {

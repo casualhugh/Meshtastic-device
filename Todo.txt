@@ -4,6 +4,7 @@ Components
     New USB
         - As above
         - Test charging works
+    
     Buttons switched to pulled up
         - Test buttons work
     Wifi
@@ -15,6 +16,7 @@ Components
     New gps with ipex connector
         - Connected with tiny library
         - Integrate with meshtastic
+    
     LSM303AGRTR - Accelerometer and Mag
         - Connected with library 
         - Rewrite library from before (with mag angle)
@@ -29,14 +31,14 @@ Components
         - integrate with Meshtastic + battery icon
 
     New screen connection / SPI pins
-        - Display something using the library as before
+        - Display something using the new library thats included
         - Test out colour and buffer?
     New screen Load mosfets
         - As above test it can be powered on etc
     Touch i2c 0x15?
         - Get gestures working
         - get the interrupt working
-        
+
 pins
     Buttons
         Button1 - 36
@@ -49,7 +51,7 @@ pins
         MISO - 19
         SCK - 7
         SXSS(Chip select) - 5
-
+        BUSY - NC (May cause issues)
     gps
         TX2 - 20
         RX2 - 4
