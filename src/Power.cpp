@@ -13,7 +13,6 @@
 #include "power.h"
 #include "NodeDB.h"
 #include "PowerFSM.h"
-#include "buzz/buzz.h"
 #include "configuration.h"
 #include "main.h"
 #include "meshUtils.h"

@@ -36,7 +36,7 @@ Components
     Touch i2c 0x15?
         - Get gestures working
         - get the interrupt working
-
+        
 pins
     Buttons
         Button1 - 36
