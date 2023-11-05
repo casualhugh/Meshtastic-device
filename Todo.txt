@@ -1,32 +1,32 @@
 Components
     New LDO
-        - Does it power on and can it be used?
+        - Does it power on and can it be used? YES
     New USB
-        - As above
-        - Test charging works
+        - As above YES
+        - Test charging works TODO
     
     Buttons switched to pulled up
-        - Test buttons work
+        - Test buttons work YES
     Wifi
-        - Get it connected with the wifi for uploading code remotely
+        - Get it connected with the wifi for uploading code remotely YES
     
     Lora SX1262 (as opposed to previous sx1276)
-        - Connected and sending basic packet
+        - Connected and sending basic packet YES
         - Integrate with meshtastic
     New gps with ipex connector
-        - Connected with tiny library
+        - Connected with tiny library YES
         - Integrate with meshtastic
     
     LSM303AGRTR - Accelerometer and Mag
-        - Connected with library 
+        - Connected with library  YES
         - Rewrite library from before (with mag angle)
         - Wake on Accelerometer?
 
     INA231AIYFFR (Battery reader i2c) 0x40?
-        - Get reading voltage
-        - Get reading power usage
-        - Write measurer for pinging it
-        - Test usage with different Components
+        - Get reading voltage YES
+        - Get reading power usage Library does this
+        - Write measurer for pinging it Yes
+        - Test usage with different Components TODO
         - Test charging rate?
         - integrate with Meshtastic + battery icon
 
@@ -35,9 +35,23 @@ Components
         - Test out colour and buffer?
     New screen Load mosfets
         - As above test it can be powered on etc
-    Touch i2c 0x15?
+    Touch i2c 0x15? Cri didnt connect vcc
         - Get gestures working
         - get the interrupt working
+
+Code todos
+    Mag sensor addition (replacing estimation for heading)
+    Acc sensor switch out
+    PMU switch out (Some code for INA260? and INA219)
+    Wifi remote uploading
+    Touch Gesture support?
+    Screens like before heading, distance, name etc auto updating
+    Debug screen not powering on from different library
+    Ability to enter names using up/down
+    Add second button
+
+    Remove i2c code that mis identifies the mag, acc and ina232
+
 
 pins
     Buttons
@@ -56,7 +70,10 @@ pins
         TX2 - 20
         RX2 - 4
         FORCEON - 13
-
+        #include <HardwareSerial.h>
+        HardwareSerial sp(1)
+        sp.begin(9600, SERIAL_8N1, RXPin-20, TXPin=4);
+        (Software serial doesnt work)
     screen
         LCDRST - 2
         LCDCS - 15

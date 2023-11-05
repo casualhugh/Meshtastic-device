@@ -1,3 +1,4 @@
+#include "mywifi.h"
 #include "GPS.h"
 #include "MeshRadio.h"
 #include "MeshService.h"
@@ -170,6 +171,7 @@ __attribute__((weak, noinline)) bool loopCanSleep()
 
 void setup()
 {
+
     concurrency::hasBeenSetup = true;
     meshtastic_Config_DisplayConfig_OledType screen_model =
         meshtastic_Config_DisplayConfig_OledType::meshtastic_Config_DisplayConfig_OledType_OLED_AUTO;
@@ -178,7 +180,7 @@ void setup()
 #ifdef DEBUG_PORT
     consoleInit(); // Set serial baud rate and init our mesh console
 #endif
-
+    setupOTA("WhereU1.1", mySSID, myPASSWORD);
     serialSinceMsec = millis();
 
     LOG_INFO("\n\n//\\ E S H T /\\ S T / C\n\n");
@@ -454,15 +456,15 @@ void setup()
 
 #ifndef ARCH_PORTDUINO
     // Initialize Wifi
-    initWifi();
+    // initWifi();
 
     // Initialize Ethernet
-    initEthernet(); // Todo(hugh): Is this needed?
+    // initEthernet(); // Todo(hugh): Is this needed?
 #endif
 
 #ifdef ARCH_ESP32
     // Start web server thread.
-    webServerThread = new WebServerThread();
+    // webServerThread = new WebServerThread();
 #endif
 
 #ifdef ARCH_PORTDUINO
@@ -549,7 +551,7 @@ void loop()
     /* if (mainController.nextThread && delayMsec)
         LOG_DEBUG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
                   mainController.nextThread->tillRun(millis())); */
-
+    wifiRunOnce();
     // We want to sleep as long as possible here - because it saves power
     if (!runASAP && loopCanSleep())
     {

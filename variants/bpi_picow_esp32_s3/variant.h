@@ -1,12 +1,12 @@
 #define HAS_GPS 1
 #undef GPS_RX_PIN
 #undef GPS_TX_PIN
-#define GPS_RX_PIN 4
-#define GPS_TX_PIN 20
+#define GPS_RX_PIN 20
+#define GPS_TX_PIN 4
 #define GPS_FORCEON 13
 // #define PIN_GPS_EN GPS_FORCEON // GPS power enable pin?
 #define PIN_GPS_STANDBY GPS_FORCEON // Alternative check logic (note we need to send sleep to gps aswell as set this low)
-// #define HAS_SCREEN 1
+#define HAS_SCREEN 1
 
 #define I2C_SDA 25
 #define I2C_SCL 26
@@ -46,7 +46,6 @@
 #define SX126X_DIO2_AS_RF_SWITCH
 // #define SX126X_DIO3_TCXO_VOLTAGE 1.8
 #endif
-#define HAS_SCREEN 0
 #define LCD_MISO RF95_MISO
 #define LCD_SCK RF95_SCK
 #define LCD_MOSI RF95_MOSI
@@ -68,7 +67,7 @@
 #define ST7789_BUSY -1
 #define ST7789_BL LCD_BL
 #define ST7789_SPI_HOST SPI3_HOST
-#define ST7789_BACKLIGHT_EN LCD_BL // CHECK WHAT THIS DOES
+#define ST7789_BACKLIGHT_EN LCD_PSU // This turns on
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 16000000
 #define TFT_HEIGHT 240
@@ -79,7 +78,7 @@
 #define SCREEN_ROTATE
 #define SCREEN_TRANSITION_FRAMERATE 5 // fps
 
-#define HAS_TOUCHSCREEN 1
+#define HAS_TOUCHSCREEN 0
 #define SCREEN_TOUCH_INT 16
 // #define SCREEN_TOUCH_USE_I2C1
 #define TOUCH_I2C_PORT 1
