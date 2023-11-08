@@ -29,7 +29,7 @@ void setupOTA(const char *nameprefix, const char *ssid, const char *password)
   char *fullhostname = new char[maxlen];
   uint8_t mac[6];
   WiFi.macAddress(mac);
-  snprintf(fullhostname, maxlen, "%s-%02x%02x%02x", nameprefix, mac[3], mac[4], mac[5]);
+  LOG_INFO(fullhostname, maxlen, "%s-%02x%02x%02x", nameprefix, mac[3], mac[4], mac[5]);
   ArduinoOTA.setHostname(fullhostname);
   delete[] fullhostname;
 
@@ -38,11 +38,9 @@ void setupOTA(const char *nameprefix, const char *ssid, const char *password)
   WiFi.begin(ssid, password);
 
   // Wait for connection
-  while (WiFi.waitForConnectResult() != WL_CONNECTED)
+  if (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
+    Serial.println("Connection Failed!");
   }
 
   // Port defaults to 3232
@@ -66,17 +64,17 @@ void setupOTA(const char *nameprefix, const char *ssid, const char *password)
       type = "filesystem";
 
     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-    Serial.println("Start updating " + type); });
+    LOG_INFO("Start updating %s", type); });
 
   ArduinoOTA.onEnd([]()
-                   { Serial.println("\nEnd"); });
+                   { LOG_INFO("\nEnd"); });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
-                        { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); });
+                        { LOG_INFO("Progress: %u%%\r", (progress / (total / 100))); });
 
   ArduinoOTA.onError([](ota_error_t error)
                      {
-    Serial.printf("Error[%u]: ", error);
+    LOG_INFO("Error[%u]: ", error);
     if (error == OTA_AUTH_ERROR) Serial.println("\nAuth Failed");
     else if (error == OTA_BEGIN_ERROR) Serial.println("\nBegin Failed");
     else if (error == OTA_CONNECT_ERROR) Serial.println("\nConnect Failed");
@@ -86,9 +84,9 @@ void setupOTA(const char *nameprefix, const char *ssid, const char *password)
   ArduinoOTA.begin();
   // TelnetStream.begin();
 
-  Serial.println("OTA Initialized");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  LOG_INFO("OTA Initialized");
+  LOG_INFO("IP address: ");
+  LOG_INFO("%s", WiFi.localIP());
 
   // xTaskCreate(
   //     ota_handle,   /* Task function. */

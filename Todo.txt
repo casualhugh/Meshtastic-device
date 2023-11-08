@@ -22,7 +22,7 @@ Components
         - Rewrite library from before (with mag angle)
         - Wake on Accelerometer?
 
-    INA231AIYFFR (Battery reader i2c) 0x40?
+    INA231AIYFFR (Battery reader i2c) 0x44?
         - Get reading voltage YES
         - Get reading power usage Library does this
         - Write measurer for pinging it Yes
@@ -49,7 +49,6 @@ Code todos
     Debug screen not powering on from different library
     Ability to enter names using up/down
     Add second button
-
     Remove i2c code that mis identifies the mag, acc and ina232
 
 
