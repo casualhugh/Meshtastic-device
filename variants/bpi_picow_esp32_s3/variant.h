@@ -19,7 +19,7 @@
 // #define LED_STATE_ON 0 // State when LED is litted
 
 #define BUTTON_PIN 36
-#define BUTTON_PIN_2 38
+#define BUTTON_PIN_ALT 38
 // #define USE_RF95   // RFM95/SX127x
 
 #undef RF95_SCK
@@ -57,7 +57,7 @@
 
 // HAS_PMU (convert to use INA)
 // ST7789 TFT LCD
-
+// #define HAS_PMU
 #define ST7789_CS LCD_CS
 #define ST7789_RS LCD_DC     // DC
 #define ST7789_SDA RF95_MOSI // MOSI
@@ -76,7 +76,7 @@
 #define TFT_OFFSET_Y 0
 #define TFT_OFFSET_ROTATION 2
 #define SCREEN_ROTATE
-#define SCREEN_TRANSITION_FRAMERATE 5 // fps
+#define SCREEN_TRANSITION_FRAMERATE 15 // fps
 
 #define HAS_TOUCHSCREEN 0
 #define SCREEN_TOUCH_INT 16

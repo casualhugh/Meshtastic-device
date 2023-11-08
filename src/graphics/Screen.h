@@ -75,6 +75,11 @@ class Screen
 namespace graphics
 {
 
+typedef enum {
+  ENTER,
+  BACK
+} PressDirection;
+
 // Forward declarations
 class Screen;
 
@@ -156,6 +161,7 @@ class Screen : public concurrency::OSThread
 
     /// Handle button press, trackball or swipe action)
     void onPress() { enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS}); }
+    void onBackPress() { enqueueCmd(ScreenCmd{.cmd = Cmd::ON_BACK_PRESS}); }
     void showPrevFrame() { enqueueCmd(ScreenCmd{.cmd = Cmd::SHOW_PREV_FRAME}); }
     void showNextFrame() { enqueueCmd(ScreenCmd{.cmd = Cmd::SHOW_NEXT_FRAME}); }
 
@@ -347,7 +353,7 @@ class Screen : public concurrency::OSThread
 
     // Implementations of various commands, called from doTask().
     void handleSetOn(bool on);
-    void handleOnPress();
+    void handleOnPress(PressDirection dir);
     void handleShowNextFrame();
     void handleShowPrevFrame();
     void handleStartBluetoothPinScreen(uint32_t pin);

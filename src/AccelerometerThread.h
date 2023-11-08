@@ -3,14 +3,17 @@
 #include "configuration.h"
 #include "main.h"
 #include "power.h"
-
+#include <Adafruit_Sensor.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_MPU6050.h>
+#include <Adafruit_LSM303_U.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <bma.h>
 
 BMA423 bmaSensor;
+Adafruit_LSM303_Accel_Unified lsm303 = Adafruit_LSM303_Accel_Unified(54321);
+
 bool BMA_IRQ = false;
 
 #define ACCELEROMETER_CHECK_INTERVAL_MS 100
@@ -23,7 +26,8 @@ uint16_t readRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len)
     Wire.endTransmission();
     Wire.requestFrom((uint8_t)address, (uint8_t)len);
     uint8_t i = 0;
-    while (Wire.available()) {
+    while (Wire.available())
+    {
         data[i++] = Wire.read();
     }
     return 0; // Pass
@@ -58,7 +62,6 @@ class AccelerometerThread : public concurrency::OSThread
 
         acceleremoter_type = type;
         LOG_DEBUG("AccelerometerThread initializing\n");
-
         if (acceleremoter_type == ScanI2C::DeviceType::MPU6050 && mpu.begin(accelerometer_found.address)) {
             LOG_DEBUG("MPU6050 initializing\n");
             // setup motion detection
@@ -121,6 +124,8 @@ class AccelerometerThread : public concurrency::OSThread
             bmaSensor.enableTiltInterrupt();
             // It corresponds to isDoubleClick interrupt
             bmaSensor.enableWakeupInterrupt();
+        } else if (acceleremoter_type == ScanI2C::DeviceType::LSM303_ACC && lsm303.begin()) {
+        
         }
     }
 
@@ -128,7 +133,7 @@ class AccelerometerThread : public concurrency::OSThread
     int32_t runOnce() override
     {
         canSleep = true; // Assume we should not keep the board awake
-
+        
         if (acceleremoter_type == ScanI2C::DeviceType::MPU6050 && mpu.getMotionInterruptStatus()) {
             wakeScreen();
         } else if (acceleremoter_type == ScanI2C::DeviceType::LIS3DH && lis.getClick() > 0) {
@@ -146,7 +151,18 @@ class AccelerometerThread : public concurrency::OSThread
                 wakeScreen();
                 return 500;
             }
+        } else if (acceleremoter_type == ScanI2C::DeviceType::LSM303_ACC){
+            /* Get a new sensor event */
+            //   sensors_event_t event;
+            //   lsm303.getEvent(&event);
+
+            //   /* Display the results (acceleration is measured in m/s^2) */
+            //   Serial.print("X: "); Serial.print(event.acceleration.x); Serial.print("  ");
+            //   Serial.print("Y: "); Serial.print(event.acceleration.y); Serial.print("  ");
+            //   Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");Serial.println("m/s^2 ");
+
         }
+        // Todo(hugh): add accelometer here to perform wake/button press actions?
 
         return ACCELEROMETER_CHECK_INTERVAL_MS;
     }

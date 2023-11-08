@@ -1222,7 +1222,19 @@ namespace graphics
                 else
                 {
                     // Don't advance the screen if we just wanted to switch off the nag notification
-                    handleOnPress();
+                    handleOnPress(ENTER);
+                }
+                break;
+            case Cmd::ON_BACK_PRESS:
+                // If a nag notification is running, stop it
+                if (moduleConfig.external_notification.enabled && (externalNotificationModule->nagCycleCutoff != UINT32_MAX))
+                {
+                    externalNotificationModule->stopNow();
+                }
+                else
+                {
+                    // Don't advance the screen if we just wanted to switch off the nag notification
+                    handleOnPress(BACK);
                 }
                 break;
             case Cmd::SHOW_PREV_FRAME:
@@ -1288,7 +1300,7 @@ namespace graphics
                 (millis() - lastScreenTransition) > (config.display.auto_screen_carousel_secs * 1000))
             {
                 LOG_DEBUG("LastScreenTransition exceeded %ums transitioning to next frame\n", (millis() - lastScreenTransition));
-                handleOnPress();
+                handleOnPress(ENTER);
             }
         }
 
@@ -1524,13 +1536,17 @@ namespace graphics
         dispdev.print(text);
     }
 
-    void Screen::handleOnPress()
+    void Screen::handleOnPress(PressDirection dir)
     {
         // If screen was off, just wake it, otherwise advance to next frame
         // If we are in a transition, the press must have bounced, drop it.
         if (ui.getUiState()->frameState == FIXED)
-        {
-            ui.nextFrame();
+        {   
+            if (dir == ENTER){
+                ui.nextFrame();
+            }else {
+                 ui.previousFrame();
+            }
             lastScreenTransition = millis();
             setFastFramerate();
         }

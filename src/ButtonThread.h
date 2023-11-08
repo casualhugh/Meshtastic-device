@@ -66,7 +66,7 @@ namespace concurrency
             // Some platforms (nrf52) have a SENSE variant which allows wake from sleep - override what OneButton did
             pinMode(BUTTON_PIN_ALT, INPUT_PULLUP_SENSE);
 #endif
-            userButtonAlt.attachClick(userButtonPressed);
+            userButtonAlt.attachClick(userButtonAltPressed);
             userButtonAlt.attachDuringLongPress(userButtonPressedLong);
             userButtonAlt.attachDoubleClick(userButtonDoublePressed);
             userButtonAlt.attachLongPressStart(userButtonPressedLongStart);
@@ -123,6 +123,12 @@ namespace concurrency
                 powerFSM.trigger(EVENT_PRESS);
             }
 #endif
+        }
+
+        static void userButtonAltPressed()
+        {
+            // LOG_DEBUG("press!\n");
+                powerFSM.trigger(EVENT_PRESS_ALT);
         }
         static void userButtonPressedLong()
         {

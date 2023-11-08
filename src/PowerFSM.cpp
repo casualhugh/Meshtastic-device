@@ -275,6 +275,18 @@ void PowerFSM_setup()
     powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS, screenPress,
                             "Press"); // Allow button to work while in serial API
 
+    // Handle press events - note: we ignore button presses when in API mode
+    powerFSM.add_transition(&stateLS, &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&stateNB, &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&stateDARK, isPowered() ? &statePOWER : &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS_ALT, screenPress, "Press");
+    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS_ALT, screenPress, "Press"); // reenter On to restart our timers
+    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS_ALT, screenPress,
+                            "Press"); // Allow button to work while in serial API
+
+
+
+
     // Handle critically low power battery by forcing deep sleep
     powerFSM.add_transition(&stateBOOT, &stateSDS, EVENT_LOW_BATTERY, NULL, "LowBat");
     powerFSM.add_transition(&stateLS, &stateSDS, EVENT_LOW_BATTERY, NULL, "LowBat");

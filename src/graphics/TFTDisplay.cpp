@@ -40,10 +40,10 @@ public:
             cfg.use_lock = true;               // Set to true to use transaction locking
             cfg.dma_channel = SPI_DMA_CH_AUTO; // SPI_DMA_CH_AUTO; // Set DMA channel to use (0=not use DMA / 1=1ch / 2=ch /
                                                // SPI_DMA_CH_AUTO=auto setting)
-            cfg.pin_sclk = ST7789_SCK;         // Set SPI SCLK pin number
-            cfg.pin_mosi = ST7789_SDA;         // Set SPI MOSI pin number
-            cfg.pin_miso = ST7789_MISO;        // Set SPI MISO pin number (-1 = disable)
-            cfg.pin_dc = ST7789_RS;            // Set SPI DC pin number (-1 = disable)
+            cfg.pin_sclk = LCD_SCK;         // Set SPI SCLK pin number
+            cfg.pin_mosi = LCD_MOSI;         // Set SPI MOSI pin number
+            cfg.pin_miso = LCD_MISO;        // Set SPI MISO pin number (-1 = disable)
+            cfg.pin_dc = LCD_DC;            // Set SPI DC pin number (-1 = disable)
 
             _bus_instance.config(cfg);              // applies the set value to the bus.
             _panel_instance.setBus(&_bus_instance); // set the bus on the panel.
@@ -52,8 +52,8 @@ public:
         {                                        // Set the display panel control.
             auto cfg = _panel_instance.config(); // Gets a structure for display panel settings.
 
-            cfg.pin_cs = ST7789_CS; // Pin number where CS is connected (-1 = disable)
-            cfg.pin_rst = -1;       // Pin number where RST is connected  (-1 = disable)
+            cfg.pin_cs = LCD_CS; // Pin number where CS is connected (-1 = disable)
+            cfg.pin_rst = LCD_RST;       // Pin number where RST is connected  (-1 = disable)
             cfg.pin_busy = -1;      // Pin number where BUSY is connected (-1 = disable)
 
             // The following setting values ​​are general initial values ​​for each panel, so please comment out any
@@ -84,7 +84,7 @@ public:
         {
             auto cfg = _light_instance.config(); // Gets a structure for backlight settings.
 
-            cfg.pin_bl = ST7789_BL; // Pin number to which the backlight is connected
+            cfg.pin_bl = LCD_BL; // Pin number to which the backlight is connected
             cfg.invert = false;     // true to invert the brightness of the backlight
             // cfg.pwm_channel = 0;
 
@@ -157,7 +157,7 @@ void TFTDisplay::display(void)
             auto dblbuf_isset = buffer_back[x + (y / 8) * displayWidth] & (1 << (y & 7));
             if (isset != dblbuf_isset)
             {
-                tft.drawPixel(x, y, isset ? TFT_MESH : TFT_BLACK);
+                tft.drawPixel(x, y, isset ? TFT_MESH : TFT_WHITE);
             }
         }
     }
@@ -207,7 +207,7 @@ void TFTDisplay::sendCommand(uint8_t com)
         digitalWrite(VTFT_CTRL, LOW);
 #endif
 #ifndef M5STACK
-        tft.setBrightness(128);
+        tft.setBrightness(255);
 #endif
         break;
     }
@@ -289,8 +289,9 @@ bool TFTDisplay::connect()
     LOG_INFO("Doing TFT init\n");
 
 #ifdef TFT_BL
-    digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
     pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+    
 #endif
 
 #ifdef ST7735_BACKLIGHT_EN_V03
@@ -316,7 +317,7 @@ bool TFTDisplay::connect()
 #else
     tft.setRotation(3); // Orient horizontal and wide underneath the silkscreen name label
 #endif
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(TFT_WHITE);
     return true;
 }
 

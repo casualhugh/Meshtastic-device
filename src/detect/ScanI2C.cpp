@@ -36,7 +36,13 @@ ScanI2C::FoundDevice ScanI2C::firstKeyboard() const
 
 ScanI2C::FoundDevice ScanI2C::firstAccelerometer() const
 {
-    ScanI2C::DeviceType types[] = {MPU6050, LIS3DH, BMA423};
+    ScanI2C::DeviceType types[] = {MPU6050, LIS3DH, BMA423, LSM303_ACC};
+    return firstOfOrNONE(3, types);
+}
+
+ScanI2C::FoundDevice ScanI2C::firstMagnotometer() const
+{
+    ScanI2C::DeviceType types[] = {LSM303_MAG, QMC5883L, QMC6310};
     return firstOfOrNONE(3, types);
 }
 

@@ -283,9 +283,6 @@ int GPS::getACK(uint8_t *buffer, uint16_t size, uint8_t requestedClass, uint8_t 
 
 bool GPS::setup()
 {
-    int msglen = 0;
-    bool isProblematicGPS = false;
-
     if (!didSerialInit)
     {
 #if !defined(GPS_UC6580)

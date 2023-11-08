@@ -36,6 +36,8 @@ class ScanI2C
         MPU6050,
         LIS3DH,
         BMA423,
+        LSM303_ACC,
+        LSM303_MAG,
 #ifdef HAS_NCP5623
         NCP5623,
 #endif
@@ -88,7 +90,7 @@ class ScanI2C
     FoundDevice firstKeyboard() const;
 
     FoundDevice firstAccelerometer() const;
-
+    FoundDevice firstMagnotometer() const;
     virtual FoundDevice find(DeviceType) const;
 
     virtual bool exists(DeviceType) const;

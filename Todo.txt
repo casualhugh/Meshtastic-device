@@ -40,16 +40,28 @@ Components
         - get the interrupt working
 
 Code todos
-    Mag sensor addition (replacing estimation for heading)
+    Mag sensor addition (replacing estimation for heading) 
+        - Initialisation needs testing
+        - Piping to the screen is not done (Does screen request it or does mag push it?)
+        - May need to create a observer type thing like gps
+        - Need to impliment the angle calc and hard iron correction
     Acc sensor switch out
-    PMU switch out (Some code for INA260? and INA219)
+        - Needs testing
+        - Doesnt do anything yet
+    battery read switch out
+        - Loads as the INA219 which has same registers just needs testings
+        - Looks like theres a config for the address might need to set that on phone?
+        - for now added a case for 0x44
     Wifi remote uploading
     Touch Gesture support?
-    Screens like before heading, distance, name etc auto updating
+        - SAD NEED POWER FOR TOUCH DRIVER
+    
     Debug screen not powering on from different library
-    Ability to enter names using up/down
-    Add second button
-    Remove i2c code that mis identifies the mag, acc and ina232
+        - Testing required possibly outside of this code base
+    Add second button for scroll
+        - Done just needs testing
+
+    Change buttons to allow for seleting canned messages?
 
 
 pins

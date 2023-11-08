@@ -59,7 +59,8 @@ NimbleBluetooth *nimbleBluetooth;
 #include "PowerFSMThread.h"
 
 #if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
-#include "AccelerometerThread.h" // Todo(hugh): Integrate My Accelerometer
+#include "AccelerometerThread.h"
+#include "MagnotometerThread.h"
 // #include "AmbientLightingThread.h"
 #endif
 
@@ -91,6 +92,8 @@ uint8_t kb_model;
 ScanI2C::DeviceAddress rtc_found = ScanI2C::ADDRESS_NONE;
 // The I2C address of the Accelerometer (if found)
 ScanI2C::DeviceAddress accelerometer_found = ScanI2C::ADDRESS_NONE;
+// The I2C address of the Accelerometer (if found)
+ScanI2C::DeviceAddress magnotometer_found = ScanI2C::ADDRESS_NONE;
 // The I2C address of the RGB LED (if found)
 ScanI2C::FoundDevice rgb_found = ScanI2C::FoundDevice(ScanI2C::DeviceType::NONE, ScanI2C::ADDRESS_NONE);
 
@@ -156,6 +159,7 @@ static OSThread *buttonThread;
 uint32_t ButtonThread::longPressTime = 0;
 #endif
 static OSThread *accelerometerThread;
+static OSThread *magnotometerThread;
 // static OSThread *ambientLightingThread;
 SPISettings spiSettings(4000000, MSBFIRST, SPI_MODE0);
 
@@ -287,7 +291,7 @@ void setup()
     }
 
 #define UPDATE_FROM_SCANNER(FIND_FN)
-    pmu_found = i2cScanner->exists(ScanI2C::DeviceType::PMU_AXP192_AXP2101); // Todo(hugh): Replace with my PMU
+    pmu_found = i2cScanner->exists(ScanI2C::DeviceType::PMU_AXP192_AXP2101); 
 
     /*
      * There are a bunch of sensors that have no further logic than to be found and stuffed into the
@@ -300,6 +304,10 @@ void setup()
     accelerometer_found = acc_info.type != ScanI2C::DeviceType::NONE ? acc_info.address : accelerometer_found;
     LOG_DEBUG("acc_info = %i\n", acc_info.type);
 #endif
+
+    auto mag_info = i2cScanner->firstMagnotometer();
+    magnotometer_found = mag_info.type != ScanI2C::DeviceType::NONE ? mag_info.address : magnotometer_found;
+    LOG_DEBUG("mag_info = %i\n", mag_info.type);
 
 #define STRING(S) #S
 
@@ -315,8 +323,8 @@ void setup()
     }
     SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::INA219, meshtastic_TelemetrySensorType_INA219)
 
-    // SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::INA260, meshtastic_TelemetrySensorType_INA260)
-    // SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::INA219, meshtastic_TelemetrySensorType_INA219)
+    SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::LSM303_ACC, meshtastic_TelemetrySensorType_QMI8658)
+    SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::LSM303_MAG, meshtastic_TelemetrySensorType_QMC5883L)
     // SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::MCP9808, meshtastic_TelemetrySensorType_MCP9808)
     // SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::MCP9808, meshtastic_TelemetrySensorType_MCP9808)
     // SCANNER_TO_SENSORS_MAP(ScanI2C::DeviceType::SHT31, meshtastic_TelemetrySensorType_SHT31)
@@ -353,15 +361,6 @@ void setup()
     if (config.display.oled != meshtastic_Config_DisplayConfig_OledType_OLED_AUTO)
         screen_model = config.display.oled;
 
-#if defined(USE_SH1107)
-    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // set dimension of 128x128
-    display_geometry = GEOMETRY_128_128;
-#endif
-
-#if defined(USE_SH1107_128_64)
-    screen_model = meshtastic_Config_DisplayConfig_OledType_OLED_SH1107; // keep dimension of 128x64
-#endif
-
 #if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
     if (acc_info.type != ScanI2C::DeviceType::NONE)
     {
@@ -369,6 +368,7 @@ void setup()
         moduleConfig.external_notification.enabled = true;
         accelerometerThread = new AccelerometerThread(acc_info.type);
     }
+    magnotometerThread = new MagnotometerThread();
 #endif
 
     // Init our SPI controller (must be before screen and lora)
