@@ -139,6 +139,12 @@ TFTDisplay::TFTDisplay(uint8_t address, int sda, int scl, OLEDDISPLAY_GEOMETRY g
 #else
     setGeometry(GEOMETRY_RAWMODE, TFT_WIDTH, TFT_HEIGHT);
 #endif
+
+#ifdef LCD_PSU
+  pinMode(LCD_PSU, OUTPUT);
+  digitalWrite(LCD_PSU, HIGH);
+#endif
+  delay(100);
 }
 
 // Write the buffer to the display memory
@@ -157,7 +163,7 @@ void TFTDisplay::display(void)
             auto dblbuf_isset = buffer_back[x + (y / 8) * displayWidth] & (1 << (y & 7));
             if (isset != dblbuf_isset)
             {
-                tft.drawPixel(x, y, isset ? TFT_MESH : TFT_WHITE);
+                tft.drawPixel(x, y, isset ? TFT_MESH : TFT_BLACK);
             }
         }
     }
@@ -317,7 +323,7 @@ bool TFTDisplay::connect()
 #else
     tft.setRotation(3); // Orient horizontal and wide underneath the silkscreen name label
 #endif
-    tft.fillScreen(TFT_WHITE);
+    tft.fillScreen(TFT_BLACK);
     return true;
 }
 

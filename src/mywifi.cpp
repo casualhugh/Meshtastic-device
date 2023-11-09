@@ -103,6 +103,6 @@ void wifiRunOnce()
   {
     ArduinoOTA.handle();
     lastRun = millis();
-    LOG_DEBUG("RAN OTA");
+    // LOG_DEBUG("RAN OTA");
   }
 }

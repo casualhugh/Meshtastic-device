@@ -285,57 +285,16 @@ bool GPS::setup()
 {
     if (!didSerialInit)
     {
-#if !defined(GPS_UC6580)
         if (tx_gpio && gnssModel == GNSS_MODEL_UNKNOWN)
         {
             LOG_DEBUG("Probing for GPS at %d \n", serialSpeeds[speedSelect]);
-            gnssModel = probe(serialSpeeds[speedSelect]);
-            if (gnssModel == GNSS_MODEL_UNKNOWN)
-            {
-                if (++speedSelect == sizeof(serialSpeeds) / sizeof(int))
-                {
-                    speedSelect = 0;
-                    if (--probeTries == 0)
-                    {
-                        LOG_WARN("Giving up on GPS probe and setting to 9600.\n");
-                        return true;
-                    }
-                }
-                return false;
-            }
+            gnssModel = GNSS_MODEL_UNKNOWN; 
         }
         else
         {
             gnssModel = GNSS_MODEL_UNKNOWN;
         }
-#else
-        gnssModel = GNSS_MODEL_UC6850;
-#endif
 
-        if (gnssModel == GNSS_MODEL_MTK)
-        {
-            /*
-             * t-beam-s3-core uses the same L76K GNSS module as t-echo.
-             * Unlike t-echo, L76K uses 9600 baud rate for communication by default.
-             * */
-
-            // Initialize the L76K Chip, use GPS + GLONASS + BEIDOU
-            _serial_gps->write("$PCAS04,7*1E\r\n");
-            delay(250);
-            // only ask for RMC and GGA
-            _serial_gps->write("$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0*02\r\n");
-            delay(250);
-            // Switch to Vehicle Mode, since SoftRF enables Aviation < 2g
-            _serial_gps->write("$PCAS11,3*1E\r\n");
-            delay(250);
-        }
-        else if (gnssModel == GNSS_MODEL_UC6850)
-        {
-
-            // use GPS + GLONASS
-            _serial_gps->write("$CFGSYS,h15\r\n");
-            delay(250);
-        }
         didSerialInit = true;
     }
 

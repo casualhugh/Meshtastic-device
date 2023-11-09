@@ -308,7 +308,7 @@ void ScanI2CTwoWire::scanPort(I2CPort port)
 
                 SCAN_SIMPLE_CASE(QMC6310_ADDR, QMC6310, "QMC6310 Highrate 3-Axis magnetic sensor found\n")
                 SCAN_SIMPLE_CASE(QMI8658_ADDR, QMI8658, "QMI8658 Highrate 6-Axis inertial measurement sensor found\n")
-                SCAN_SIMPLE_CASE(LSM303_MAG_ADDR, QMC5883L, "QMC5883L Highrate 3-Axis magnetic sensor found\n")
+                SCAN_SIMPLE_CASE(LSM303_MAG_ADDR, QMC5883L, "LSM303 Highrate 3-Axis magnetic sensor found\n")
 
                 SCAN_SIMPLE_CASE(PMSA0031_ADDR, PMSA0031, "PMSA0031 air quality sensor found\n")
                 SCAN_SIMPLE_CASE(LSM303_ACC_ADDR, MPU6050, "LSM303 accelerometer found\n")
