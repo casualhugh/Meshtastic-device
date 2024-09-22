@@ -54,6 +54,7 @@
 #define LCD_DC 12
 #define LCD_PSU 14
 #define LCD_BL 27
+// #define GPS_DEBUG
 
 // HAS_PMU (convert to use INA)
 // ST7789 TFT LCD

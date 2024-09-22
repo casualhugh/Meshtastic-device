@@ -36,7 +36,7 @@ public:
             cfg.freq_write = SPI_FREQUENCY;     // SPI clock for transmission (up to 80MHz, rounded to the value obtained by dividing
                                                 // 80MHz by an integer)
             cfg.freq_read = SPI_READ_FREQUENCY; // SPI clock when receiving
-            cfg.spi_3wire = false;
+            cfg.spi_3wire = true;
             cfg.use_lock = true;               // Set to true to use transaction locking
             cfg.dma_channel = SPI_DMA_CH_AUTO; // SPI_DMA_CH_AUTO; // Set DMA channel to use (0=not use DMA / 1=1ch / 2=ch /
                                                // SPI_DMA_CH_AUTO=auto setting)
@@ -63,11 +63,11 @@ public:
             cfg.panel_height = TFT_HEIGHT;             // actual displayable height
             cfg.offset_x = TFT_OFFSET_X;               // Panel offset amount in X direction
             cfg.offset_y = TFT_OFFSET_Y;               // Panel offset amount in Y direction
-            cfg.offset_rotation = TFT_OFFSET_ROTATION; // Rotation direction value offset 0~7 (4~7 is mirrored)
+            cfg.offset_rotation = 0; // Rotation direction value offset 0~7 (4~7 is mirrored)
             cfg.dummy_read_pixel = 9;                  // Number of bits for dummy read before pixel readout
             cfg.dummy_read_bits = 1;                   // Number of bits for dummy read before non-pixel data read
-            cfg.readable = true;                       // Set to true if data can be read
-            cfg.invert = true;                         // Set to true if the light/darkness of the panel is reversed
+            cfg.readable = false;                       // Set to true if data can be read
+            cfg.invert = false;                         // Set to true if the light/darkness of the panel is reversed
             cfg.rgb_order = false;                     // Set to true if the panel's red and blue are swapped
             cfg.dlen_16bit =
                 false;             // Set to true for panels that transmit data length in 16-bit units with 16-bit parallel or SPI
@@ -123,9 +123,15 @@ public:
     }
 };
 
-static LGFX tft;
-
+// static LGFX tft;
+#include "Arduino_GFX_Library.h"
+Arduino_DataBus *bus = new Arduino_ESP32SPI(12, 15, 7, 8, 19, VSPI);
+Arduino_G *tft = new Arduino_GC9A01(bus, 2, 0, true);
+Arduino_GFX *gfx = new Arduino_Canvas_Mono(240, 240, tft, 0, 0);
 #endif
+
+
+
 
 #if defined(ST7735_CS) || defined(ST7789_CS) || defined(ILI9341_DRIVER)
 #include "SPILock.h"
@@ -145,6 +151,10 @@ TFTDisplay::TFTDisplay(uint8_t address, int sda, int scl, OLEDDISPLAY_GEOMETRY g
   digitalWrite(LCD_PSU, HIGH);
 #endif
   delay(100);
+  #ifdef LCD_BL
+    pinMode(LCD_BL, OUTPUT);
+    digitalWrite(LCD_BL, HIGH);
+#endif
 }
 
 // Write the buffer to the display memory
@@ -153,7 +163,7 @@ void TFTDisplay::display(void)
     concurrency::LockGuard g(spiLock);
 
     uint16_t x, y;
-
+    bool changed = false;
     for (y = 0; y < displayHeight; y++)
     {
         for (x = 0; x < displayWidth; x++)
@@ -163,7 +173,9 @@ void TFTDisplay::display(void)
             auto dblbuf_isset = buffer_back[x + (y / 8) * displayWidth] & (1 << (y & 7));
             if (isset != dblbuf_isset)
             {
-                tft.drawPixel(x, y, isset ? TFT_MESH : TFT_BLACK);
+                // tft.drawPixel(x, y, isset ? TFT_MESH : TFT_BLACK);
+                gfx->writePixelPreclipped(x, y, isset ? BLACK : WHITE);
+                changed = true;
             }
         }
     }
@@ -176,6 +188,7 @@ void TFTDisplay::display(void)
             buffer_back[pos] = buffer[pos];
         }
     }
+    if (changed) gfx->flush();
 }
 
 // Send a command to the display (low level function)
@@ -213,7 +226,7 @@ void TFTDisplay::sendCommand(uint8_t com)
         digitalWrite(VTFT_CTRL, LOW);
 #endif
 #ifndef M5STACK
-        tft.setBrightness(255);
+        // tft.setBrightness(255);
 #endif
         break;
     }
@@ -246,7 +259,7 @@ void TFTDisplay::sendCommand(uint8_t com)
         digitalWrite(VTFT_CTRL, HIGH);
 #endif
 #ifndef M5STACK
-        tft.setBrightness(0);
+        // tft.setBrightness(0);
 #endif
         break;
     }
@@ -268,7 +281,7 @@ void TFTDisplay::flipScreenVertically()
 bool TFTDisplay::hasTouch(void)
 {
 #ifndef M5STACK
-    return tft.touch() != nullptr;
+    return false; //tft.touch() != nullptr;
 #else
     return false;
 #endif
@@ -277,7 +290,7 @@ bool TFTDisplay::hasTouch(void)
 bool TFTDisplay::getTouch(int16_t *x, int16_t *y)
 {
 #ifndef M5STACK
-    return tft.getTouch(x, y);
+    return false; // tft.getTouch(x, y);
 #else
     return false;
 #endif
@@ -313,7 +326,13 @@ bool TFTDisplay::connect()
     }
 #endif
 
-    tft.init();
+    // tft.init();
+    if (!gfx->begin())
+    {
+        Serial.println("gfx->begin() failed!");
+    }
+    gfx->fillScreen(WHITE);
+    gfx->flush();
 #if defined(M5STACK)
     tft.setRotation(0);
 #elif defined(T_DECK) || defined(PICOMPUTER_S3)
@@ -321,9 +340,9 @@ bool TFTDisplay::connect()
 #elif defined(T_WATCH_S3)
     tft.setRotation(2); // T-Watch S3 left-handed orientation
 #else
-    tft.setRotation(3); // Orient horizontal and wide underneath the silkscreen name label
+    // tft.setRotation(3); // Orient horizontal and wide underneath the silkscreen name label
 #endif
-    tft.fillScreen(TFT_BLACK);
+    // tft.fillScreen(TFT_BLACK);
     return true;
 }
 

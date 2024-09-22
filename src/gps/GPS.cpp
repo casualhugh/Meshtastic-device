@@ -781,6 +781,15 @@ GnssModel_t GPS::probe(int serialSpeed)
     return GNSS_MODEL_UBLOX;
 }
 
+
+int calculateChecksum(const char* sentence) {
+  int checksum = 0;
+  for (int i = 1; sentence[i] != '\0'; i++) {
+    checksum ^= sentence[i];
+  }
+  return checksum;
+}
+
 GPS *GPS::createGps()
 {
     int8_t _rx_gpio = config.position.rx_gpio;
@@ -852,6 +861,16 @@ GPS *GPS::createGps()
         LOG_DEBUG("Using GPIO%d for GPS RX\n", new_gps->rx_gpio);
         LOG_DEBUG("Using GPIO%d for GPS TX\n", new_gps->tx_gpio);
         _serial_gps->begin(GPS_BAUDRATE, SERIAL_8N1, new_gps->rx_gpio, new_gps->tx_gpio);
+        // Send the PMTK353 command to enable all satellite systems
+        _serial_gps->print("$PMTK353,1,1,1,0,1*"); // Enable GPS, GLONASS, Galileo, BDS
+
+        // Calculate and append the checksum
+        int checksum = calculateChecksum("$PMTK353,1,1,1,0,1");
+        if (checksum < 16) {
+            _serial_gps->print("0");
+        }
+        _serial_gps->println(checksum, HEX);
+
         /*
          * T-Beam-S3-Core will be preset to use gps Probe here, and other boards will not be changed first
          */
@@ -1119,6 +1138,7 @@ bool GPS::whileIdle()
     while (_serial_gps->available() > 0)
     {
         int c = _serial_gps->read();
+        
         UBXscratch[charsInBuf] = c;
 #ifdef GPS_DEBUG
         LOG_DEBUG("%c", c);
