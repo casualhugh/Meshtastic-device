@@ -226,6 +226,12 @@ static void screenPress()
     screen->onPress();
 }
 
+static void screenBackPress() 
+{
+    screen->onBackPress();
+}
+
+
 static void bootEnter()
 {
     LOG_DEBUG("Enter state: BOOT\n");
@@ -270,9 +276,9 @@ void PowerFSM_setup()
     powerFSM.add_transition(&stateLS, &stateON, EVENT_PRESS, NULL, "Press");
     powerFSM.add_transition(&stateNB, &stateON, EVENT_PRESS, NULL, "Press");
     powerFSM.add_transition(&stateDARK, isPowered() ? &statePOWER : &stateON, EVENT_PRESS, NULL, "Press");
-    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS, screenPress, "Press");
-    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS, screenPress, "Press"); // reenter On to restart our timers
-    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS, screenPress,
+    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS, screenBackPress, "Press");
+    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS, screenBackPress, "Press"); // reenter On to restart our timers
+    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS, screenBackPress,
                             "Press"); // Allow button to work while in serial API
 
     // Handle press events - note: we ignore button presses when in API mode

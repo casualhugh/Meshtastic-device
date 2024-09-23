@@ -117,6 +117,10 @@ class Screen : public concurrency::OSThread
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
     CallbackObserver<Screen, const meshtastic::Status *> gpsStatusObserver =
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
+    
+    CallbackObserver<Screen, const meshtastic::Status *> magnotometerStatusObserver =
+        CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
+
     CallbackObserver<Screen, const meshtastic::Status *> nodeStatusObserver =
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
     CallbackObserver<Screen, const meshtastic_MeshPacket *> textMessageObserver =

@@ -41,10 +41,11 @@ Components
 
 Code todos
     Mag sensor addition (replacing estimation for heading) 
-        - Initialisation needs testing
-        - Piping to the screen is not done (Does screen request it or does mag push it?)
-        - May need to create a observer type thing like gps
-        - Need to impliment the angle calc and hard iron correction
+        DONE- Initialisation needs testing
+        DONE- Piping to the screen is not done (Does screen request it or does mag push it?)
+        DONE- May need to create a observer type thing like gps
+        DONE- Need to impliment the angle calc and hard iron correction
+
     Acc sensor switch out
         - Needs testing
         - Doesnt do anything yet
@@ -56,10 +57,6 @@ Code todos
     Touch Gesture support?
         - SAD NEED POWER FOR TOUCH DRIVER
     
-    Debug screen not powering on from different library
-        - Testing required possibly outside of this code base
-    Add second button for scroll
-        - Done just needs testing
 
     Change buttons to allow for seleting canned messages?
 

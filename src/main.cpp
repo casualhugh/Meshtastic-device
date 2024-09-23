@@ -59,8 +59,7 @@ NimbleBluetooth *nimbleBluetooth;
 #include "PowerFSMThread.h"
 
 #if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
-#include "AccelerometerThread.h"
-#include "MagnotometerThread.h"
+#include "modules/Telemetry/Sensor/LSM303.h"
 // #include "AmbientLightingThread.h"
 #endif
 
@@ -77,6 +76,9 @@ meshtastic::GPSStatus *gpsStatus = new meshtastic::GPSStatus();
 
 // Global Node status
 meshtastic::NodeStatus *nodeStatus = new meshtastic::NodeStatus();
+
+// Global Magnotometer status
+meshtastic::MagnotometerStatus * magnotometerStatus = new meshtastic::MagnotometerStatus();
 
 // Scan for I2C Devices
 
@@ -158,8 +160,7 @@ static OSThread *powerFSMthread;
 static OSThread *buttonThread;
 uint32_t ButtonThread::longPressTime = 0;
 #endif
-static OSThread *accelerometerThread;
-static OSThread *magnotometerThread;
+static LSM303 *magnotometerThread;
 // static OSThread *ambientLightingThread;
 SPISettings spiSettings(4000000, MSBFIRST, SPI_MODE0);
 
@@ -366,9 +367,17 @@ void setup()
     {
         config.display.wake_on_tap_or_motion = true;
         moduleConfig.external_notification.enabled = true;
-        accelerometerThread = new AccelerometerThread(acc_info.type);
+        // accelerometerThread = new AccelerometerThread(acc_info.type);
     }
-    magnotometerThread = new MagnotometerThread();
+    magnotometerThread = new LSM303();
+    if (magnotometerThread)
+    {
+        magnotometerStatus->observe(&magnotometerThread->newStatus);
+    }
+    else
+    {
+        LOG_DEBUG("Running without Magnotometer.\n");
+    }
 #endif
 
     // Init our SPI controller (must be before screen and lora)
@@ -487,7 +496,7 @@ void setup()
     // This must be _after_ service.init because we need our preferences loaded from flash to have proper timeout values
     PowerFSM_setup(); // we will transition to ON in a couple of seconds, FIXME, only do this for cold boots, not waking from SDS
     powerFSMthread = new PowerFSMThread();
-    // setupOTA("WhereU1.1", mySSID, myPASSWORD);
+    setupOTA("WhereU1.1", mySSID, myPASSWORD);
     setCPUFast(false); // 80MHz is fine for our slow peripherals
 }
 
@@ -549,7 +558,7 @@ void loop()
     /* if (mainController.nextThread && delayMsec)
         LOG_DEBUG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
                   mainController.nextThread->tillRun(millis())); */
-    // wifiRunOnce();
+    wifiRunOnce();
     // We want to sleep as long as possible here - because it saves power
     if (!runASAP && loopCanSleep())
     {

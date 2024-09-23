@@ -2,6 +2,7 @@
 #include "NodeDB.h"
 #include "Status.h"
 #include "configuration.h"
+#include "MagnotometerStatus.h"
 #include <Arduino.h>
 
 extern NodeDB nodeDB;
@@ -95,7 +96,7 @@ class GPSStatus : public Status
 
     uint32_t getHeading() const
     {
-        return p.ground_track;
+        return magnotometerStatus->getHeading(); //p.ground_track;
     }
 
     uint32_t getNumSatellites() const

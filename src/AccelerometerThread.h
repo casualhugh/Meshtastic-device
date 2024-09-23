@@ -6,13 +6,11 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_MPU6050.h>
-#include <Adafruit_LSM303_U.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <bma.h>
 
 BMA423 bmaSensor;
-Adafruit_LSM303_Accel_Unified lsm303 = Adafruit_LSM303_Accel_Unified(54321);
 
 bool BMA_IRQ = false;
 
@@ -124,7 +122,7 @@ class AccelerometerThread : public concurrency::OSThread
             bmaSensor.enableTiltInterrupt();
             // It corresponds to isDoubleClick interrupt
             bmaSensor.enableWakeupInterrupt();
-        } else if (acceleremoter_type == ScanI2C::DeviceType::LSM303_ACC && lsm303.begin()) {
+        } else if (acceleremoter_type == ScanI2C::DeviceType::LSM303_ACC && false) {
         
         }
     }
