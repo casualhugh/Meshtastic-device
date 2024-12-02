@@ -153,12 +153,13 @@ uint32_t GetTimeSinceMeshPacket(const meshtastic_MeshPacket *mp)
 
 void EnvironmentTelemetryModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(x, y, "Environment");
+    display->drawString(x + display->getWidth() / 2, y + FONT_HEIGHT_MEDIUM * 2, "Environment");
     if (lastMeasurementPacket == nullptr) {
         display->setFont(FONT_SMALL);
         display->drawString(x, y += fontHeight(FONT_MEDIUM), "No measurement");
+        display->drawString(x + display->getWidth() / 2, y + FONT_HEIGHT_MEDIUM * 4, "No measurement");
         return;
     }
 

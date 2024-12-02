@@ -199,6 +199,12 @@ void TFTDisplay::sendCommand(uint8_t com)
     {
     case DISPLAYON:
     {
+        #ifdef LCD_PSU
+            digitalWrite(LCD_PSU, HIGH);
+        #endif
+        #ifdef LCD_BL
+            digitalWrite(LCD_BL, HIGH);
+        #endif
 #if defined(ST7735_BACKLIGHT_EN_V03) && defined(TFT_BACKLIGHT_ON)
         if (heltec_version == 3)
         {
@@ -232,6 +238,12 @@ void TFTDisplay::sendCommand(uint8_t com)
     }
     case DISPLAYOFF:
     {
+        #ifdef LCD_PSU
+        digitalWrite(LCD_PSU, LOW);
+        #endif
+        #ifdef LCD_BL
+            digitalWrite(LCD_BL, LOW);
+        #endif
 #if defined(ST7735_BACKLIGHT_EN_V03) && defined(TFT_BACKLIGHT_ON)
         if (heltec_version == 3)
         {

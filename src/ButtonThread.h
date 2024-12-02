@@ -52,7 +52,7 @@ namespace concurrency
             pinMode(config.device.button_gpio ? config.device.button_gpio : BUTTON_PIN, INPUT_PULLUP_SENSE);
 #endif
             userButton.attachClick(userButtonPressed);
-            userButton.setClickMs(300);
+            userButton.setClickMs(100);
             userButton.attachDuringLongPress(userButtonPressedLong);
             userButton.attachDoubleClick(userButtonDoublePressed);
             userButton.attachMultiClick(userButtonMultiPressed);
