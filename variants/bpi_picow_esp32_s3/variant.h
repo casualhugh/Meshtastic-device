@@ -10,7 +10,8 @@
 
 #define I2C_SDA 25
 #define I2C_SCL 26
-
+#define BATTERY_PIN -1
+#define ADC_CHANNEL ADC1_GPIO34_CHANNEL
 #define ACC_INTERUPT 39
 #define POWER_INTERUPT 34
 #define TOUCH_INTERUPT 35

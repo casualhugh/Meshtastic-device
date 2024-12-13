@@ -280,8 +280,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port)
                 }
                 else
                 { // Assume INA219 if INA260 ID is not found
-                    LOG_INFO("INA219 sensor found at address 0x%x\n", (uint8_t)addr.address);
-                    type = INA219;
+                LOG_INFO("INA219 sensor found at address 0x%x\n", (uint8_t)addr.address);
+                type = INA219;
                 }
                 break;
 

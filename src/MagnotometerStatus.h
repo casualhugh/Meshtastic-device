@@ -64,7 +64,6 @@ class MagnotometerStatus : public Status
         heading = newStatus->heading;
         if (isDirty) {
             // In debug logs, identify position by @timestamp:stage (stage 3 = notify)
-            LOG_DEBUG("New heading %f\n", heading);
             onNewStatus.notifyObservers(this);
         }
         return 0;

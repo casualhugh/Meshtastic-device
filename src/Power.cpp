@@ -280,36 +280,37 @@ class AnalogBatteryLevel : public HasBatteryLevel
 #if defined(HAS_TELEMETRY) && !defined(ARCH_PORTDUINO)
     uint16_t getINAVoltage()
     {
-        if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == config.power.device_battery_ina_address) {
-            return ina219Sensor.getBusVoltageMv();
-        } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA260].first ==
-                   config.power.device_battery_ina_address) {
-            return ina260Sensor.getBusVoltageMv();
-        } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == 0x44) {
-            return ina219Sensor.getBusVoltageMv();
-        }
-        return 0;
+        return ina219Sensor.getBusVoltageMv();
+        // if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == config.power.device_battery_ina_address) {
+            
+        // } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA260].first ==
+        //            config.power.device_battery_ina_address) {
+        //     return ina260Sensor.getBusVoltageMv();
+        // } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == 0x40) {
+        //     return ina219Sensor.getBusVoltageMv();
+        // }
+        // return 0;
     }
 
     bool hasINA()
     {
-        if (!config.power.device_battery_ina_address) {
-            return false;
-        }
-        if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == config.power.device_battery_ina_address) {
-            if (!ina219Sensor.isInitialized())
-                return ina219Sensor.runOnce() > 0;
-            return ina219Sensor.isRunning();
-        } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA260].first ==
-                   config.power.device_battery_ina_address) {
-            if (!ina260Sensor.isInitialized())
-                return ina260Sensor.runOnce() > 0;
-            return ina260Sensor.isRunning();
-         } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == 0x44) {
-            if (!ina219Sensor.isInitialized())
-                return ina219Sensor.runOnce() > 0;
-            return ina219Sensor.isRunning();
-         }
+        // if (!config.power.device_battery_ina_address) {
+        //     return false;
+        // }
+        // if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == config.power.device_battery_ina_address) {
+        if (!ina219Sensor.isInitialized())
+            return ina219Sensor.runOnce() > 0;
+        return ina219Sensor.isRunning();
+        // } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA260].first ==
+        //            config.power.device_battery_ina_address) {
+        //     if (!ina260Sensor.isInitialized())
+        //         return ina260Sensor.runOnce() > 0;
+        //     return ina260Sensor.isRunning();
+        //  } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == 0x44) {
+        //     if (!ina219Sensor.isInitialized())
+        //         return ina219Sensor.runOnce() > 0;
+        //     return ina219Sensor.isRunning();
+        //  }
         return false;
     }
 #endif
