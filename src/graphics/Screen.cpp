@@ -851,12 +851,12 @@ namespace graphics
         {
             prevFrame = state->currentFrame;
 
-            nodeIndex = (nodeIndex + state->frameTransitionDirection) % nodeDB.getNumMeshNodes();
+            nodeIndex = (nodeIndex + state->frameTransitionDirection) % (nodeDB.getNumMeshNodes() - 1);
             meshtastic_NodeInfoLite *n = nodeDB.getMeshNodeByIndex(nodeIndex);
             if (n->num == nodeDB.getNodeNum())
             {
                 // Don't show our node, just skip to next
-                nodeIndex = (nodeIndex + state->frameTransitionDirection) % nodeDB.getNumMeshNodes();
+                nodeIndex = (nodeIndex + state->frameTransitionDirection) % (nodeDB.getNumMeshNodes() - 1);
                 n = nodeDB.getMeshNodeByIndex(nodeIndex);
             }
         }
@@ -1125,7 +1125,6 @@ namespace graphics
             textMessageObserver.observe(textMessageModule);
         if (inputBroker)
             inputObserver.observe(inputBroker);
-        // Todo(hugh): Add Magnotometer observer here
         //  Modules can notify screen about refresh
         MeshModule::observeUIEvents(&uiFrameEventObserver);
     }

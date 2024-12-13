@@ -417,12 +417,12 @@ void setup()
 // Don't call screen setup until after nodedb is setup (because we need
 // the current region name)
 #if defined(ST7735_CS) || defined(USE_EINK) || defined(ILI9341_DRIVER) || defined(ST7789_CS)
-    screen->setup(); // TODO(hugh): Rewrite the screen setup for my driver
+    screen->setup();
 #endif
 
     screen->print("Started...\n");
 
-#ifdef HW_SPI1_DEVICE // TODO(hugh): Figure out if this is needed
+#ifdef HW_SPI1_DEVICE
     LockingArduinoHal *RadioLibHAL = new LockingArduinoHal(SPI1, spiSettings);
 #else // HW_SPI1_DEVICE
     LockingArduinoHal *RadioLibHAL = new LockingArduinoHal(SPI, spiSettings);

@@ -1,40 +1,40 @@
 Components
     New LDO
-        - Does it power on and can it be used? YES
+        - YES Does it power on and can it be used? YES
     New USB
-        - As above YES
-        - Test charging works TODO
+        - YES As above 
+        - YES Test charging works 
     
     Buttons switched to pulled up
-        - Test buttons work YES
+        - YES Test buttons work YES
     Wifi
-        - Get it connected with the wifi for uploading code remotely YES
+        - YES Get it connected with the wifi for uploading code remotely YES
     
     Lora SX1262 (as opposed to previous sx1276)
-        - Connected and sending basic packet YES
-        - Integrate with meshtastic
+        - YES Connected and sending basic packet YES
+        - YESIntegrate with meshtastic 
     New gps with ipex connector
-        - Connected with tiny library YES
-        - Integrate with meshtastic
+        - YES Connected with tiny library YES
+        - YES Integrate with meshtastic
     
     LSM303AGRTR - Accelerometer and Mag
-        - Connected with library  YES
-        - Rewrite library from before (with mag angle)
-        - Wake on Accelerometer?
+        - YES Connected with library  YES
+        - YES Rewrite library from before (with mag angle)
+        - NO Wake on Accelerometer?
 
     INA231AIYFFR (Battery reader i2c) 0x44?
-        - Get reading voltage YES
-        - Get reading power usage Library does this
-        - Write measurer for pinging it Yes
-        - Test usage with different Components TODO
-        - Test charging rate?
-        - integrate with Meshtastic + battery icon
+        - YES Get reading voltage YES
+        - YES Get reading power usage Library does this
+        - YES Write measurer for pinging it Yes
+        - TODO Test usage with different Components
+        - TODDO Test charging rate?
+        - YES integrate with Meshtastic + battery icon
 
     New screen connection / SPI pins
-        - Display something using the new library thats included
+        - YES Display something using the new library thats included
         - Test out colour and buffer?
     New screen Load mosfets
-        - As above test it can be powered on etc
+        - YES As above test it can be powered on etc
     Touch i2c 0x15? Cri didnt connect vcc
         - Get gestures working
         - get the interrupt working
@@ -50,16 +50,16 @@ Code todos
         - Needs testing
         - Doesnt do anything yet
     battery read switch out
-        - Loads as the INA219 which has same registers just needs testings
-        - Looks like theres a config for the address might need to set that on phone?
-        - for now added a case for 0x44
+        - YES  Loads as the INA226 which has same registers just needs testings
+        - YES  Looks like theres a config for the address might need to set that on phone?
+        - YES for now added a case for 0x40
     Wifi remote uploading
     Touch Gesture support?
         - SAD NEED POWER FOR TOUCH DRIVER
     
 
     Change buttons to allow for seleting canned messages?
-
+        
 
 pins
     Buttons
