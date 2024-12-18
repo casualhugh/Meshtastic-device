@@ -3,7 +3,6 @@
 #include "PhoneAPI.h"
 #include "Stream.h"
 #include "concurrency/OSThread.h"
-#include <cstdarg>
 
 // A To/FromRadio packet + our 32 bit header
 #define MAX_STREAM_BUF_SIZE (MAX_TO_FROM_RADIO_SIZE + sizeof(uint32_t))
@@ -83,7 +82,4 @@ class StreamAPI : public PhoneAPI
 
     /// Subclasses can use this scratch buffer if they wish
     uint8_t txBuf[MAX_STREAM_BUF_SIZE] = {0};
-
-    /// Low level function to emit a protobuf encapsulated log record
-    void emitLogRecord(meshtastic_LogRecord_Level level, const char *src, const char *format, va_list arg);
 };

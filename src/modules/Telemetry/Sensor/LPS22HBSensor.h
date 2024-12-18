@@ -1,7 +1,3 @@
-#include "configuration.h"
-
-#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
-
 #include "../mesh/generated/meshtastic/telemetry.pb.h"
 #include "TelemetrySensor.h"
 #include <Adafruit_LPS2X.h>
@@ -20,5 +16,3 @@ class LPS22HBSensor : public TelemetrySensor
     virtual int32_t runOnce() override;
     virtual bool getMetrics(meshtastic_Telemetry *measurement) override;
 };
-
-#endif

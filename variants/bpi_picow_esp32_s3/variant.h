@@ -23,17 +23,16 @@
 #define BUTTON_PIN_ALT 38
 // #define USE_RF95   // RFM95/SX127x
 
-#undef LORA_SCK
-#undef LORA_MISO
-#undef LORA_MOSI
-#undef LORA_CS
+#undef RF95_SCK
+#undef RF95_MISO
+#undef RF95_MOSI
+#undef RF95_NSS
 
 // WaveShare Core1262-868M OK
 // https://www.waveshare.com/wiki/Core1262-868M
 #define USE_SX1262
 
 #ifdef USE_SX1262
-<<<<<<< HEAD
 #define RF95_MISO 19
 #define RF95_SCK 7
 #define RF95_MOSI 8
@@ -42,16 +41,6 @@
 #define LORA_DIO1 22
 #define LORA_BUSY -1
 #define SX126X_CS RF95_NSS
-=======
-#define LORA_MISO 39
-#define LORA_SCK 21
-#define LORA_MOSI 38
-#define LORA_CS 17
-#define LORA_RESET 42
-#define LORA_DIO1 5
-#define LORA_BUSY 47
-#define SX126X_CS LORA_CS
->>>>>>> master
 #define SX126X_DIO1 LORA_DIO1
 #define SX126X_BUSY LORA_BUSY
 #define SX126X_RESET LORA_RESET
@@ -68,7 +57,6 @@
 #define LCD_BL 27
 // #define GPS_DEBUG
 
-<<<<<<< HEAD
 // HAS_PMU (convert to use INA)
 // ST7789 TFT LCD
 // #define HAS_PMU
@@ -91,22 +79,6 @@
 #define TFT_OFFSET_ROTATION 2
 #define SCREEN_ROTATE
 #define SCREEN_TRANSITION_FRAMERATE 15 // fps
-=======
-// #define USE_SX1280
-#ifdef USE_SX1280
-#define LORA_MISO 1
-#define LORA_SCK 3
-#define LORA_MOSI 4
-#define LORA_CS 2
-#define LORA_RESET 17
-#define LORA_DIO1 12
-#define LORA_BUSY 47
-#define SX128X_CS LORA_CS
-#define SX128X_DIO1 LORA_DIO1
-#define SX128X_BUSY LORA_BUSY
-#define SX128X_RESET LORA_RESET
-#endif
->>>>>>> master
 
 #define HAS_TOUCHSCREEN 0
 #define SCREEN_TOUCH_INT 16

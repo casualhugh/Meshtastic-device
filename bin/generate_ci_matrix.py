@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-"""Generate the CI matrix."""
+"""Generate the CI matrix"""
 
 import configparser
 import json
 import os
 import sys
-import random
 
 rootdir = "variants/"
 
@@ -35,12 +34,5 @@ for subdir, dirs, files in os.walk(rootdir):
                                     outlist.append(section)
                             else:
                                 outlist.append(section)
-                    if "board_check" in config[config[c].name]:
-                        if (config[config[c].name]["board_check"] == "true") & (
-                            "check" in options
-                        ):
-                            outlist.append(section)
-if ("quick" in options) & (len(outlist) > 3):
-    print(json.dumps(random.sample(outlist, 3)))
-else:
-    print(json.dumps(outlist))
+
+print(json.dumps(outlist))

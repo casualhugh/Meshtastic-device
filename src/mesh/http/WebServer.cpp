@@ -1,14 +1,13 @@
-#include "configuration.h"
-#if !MESHTASTIC_EXCLUDE_WEBSERVER
+#include "mesh/http/WebServer.h"
 #include "NodeDB.h"
 #include "graphics/Screen.h"
 #include "main.h"
-#include "mesh/http/WebServer.h"
-#include "mesh/wifi/WiFiAPClient.h"
+#include "mesh/http/WiFiAPClient.h"
 #include "sleep.h"
 #include <HTTPBodyParser.hpp>
 #include <HTTPMultipartBodyParser.hpp>
 #include <HTTPURLEncodedBodyParser.hpp>
+
 #include <WebServer.h>
 #include <WiFi.h>
 
@@ -69,19 +68,19 @@ static void taskCreateCert(void *parameter)
 
 #if 0
     // Delete the saved certs (used in debugging)
-    LOG_DEBUG("Delete any saved SSL keys");
+    LOG_DEBUG("Deleting any saved SSL keys ...\n");
     // prefs.clear();
     prefs.remove("PK");
     prefs.remove("cert");
 #endif
 
-    LOG_INFO("Checking if we have a saved SSL Certificate");
+    LOG_INFO("Checking if we have a previously saved SSL Certificate.\n");
 
     size_t pkLen = prefs.getBytesLength("PK");
     size_t certLen = prefs.getBytesLength("cert");
 
     if (pkLen && certLen) {
-        LOG_INFO("Existing SSL Certificate found!");
+        LOG_INFO("Existing SSL Certificate found!\n");
 
         uint8_t *pkBuffer = new uint8_t[pkLen];
         prefs.getBytes("PK", pkBuffer, pkLen);
@@ -91,11 +90,12 @@ static void taskCreateCert(void *parameter)
 
         cert = new SSLCert(certBuffer, certLen, pkBuffer, pkLen);
 
-        LOG_DEBUG("Retrieved Private Key: %d Bytes", cert->getPKLength());
-        LOG_DEBUG("Retrieved Certificate: %d Bytes", cert->getCertLength());
+        LOG_DEBUG("Retrieved Private Key: %d Bytes\n", cert->getPKLength());
+        LOG_DEBUG("Retrieved Certificate: %d Bytes\n", cert->getCertLength());
+
     } else {
 
-        LOG_INFO("Creating the certificate. This may take a while. Please wait");
+        LOG_INFO("Creating the certificate. This may take a while. Please wait...\n");
         yield();
         cert = new SSLCert();
         yield();
@@ -104,13 +104,14 @@ static void taskCreateCert(void *parameter)
         yield();
 
         if (createCertResult != 0) {
-            LOG_ERROR("Creating the certificate failed");
+            LOG_ERROR("Creating the certificate failed\n");
+
         } else {
-            LOG_INFO("Creating the certificate was successful");
+            LOG_INFO("Creating the certificate was successful\n");
 
-            LOG_DEBUG("Created Private Key: %d Bytes", cert->getPKLength());
+            LOG_DEBUG("Created Private Key: %d Bytes\n", cert->getPKLength());
 
-            LOG_DEBUG("Created Certificate: %d Bytes", cert->getCertLength());
+            LOG_DEBUG("Created Certificate: %d Bytes\n", cert->getCertLength());
 
             prefs.putBytes("PK", (uint8_t *)cert->getPKData(), cert->getPKLength());
             prefs.putBytes("cert", (uint8_t *)cert->getCertData(), cert->getCertLength());
@@ -139,7 +140,7 @@ void createSSLCert()
                     16,    /* Priority of the task. */
                     NULL); /* Task handle. */
 
-        LOG_DEBUG("Waiting for SSL Cert to be generated");
+        LOG_DEBUG("Waiting for SSL Cert to be generated.\n");
         while (!isCertReady) {
             if ((millis() / 500) % 2) {
                 if (runLoop) {
@@ -158,13 +159,13 @@ void createSSLCert()
                 runLoop = true;
             }
         }
-        LOG_INFO("SSL Cert Ready!");
+        LOG_INFO("SSL Cert Ready!\n");
     }
 }
 
 WebServerThread *webServerThread;
 
-WebServerThread::WebServerThread() : concurrency::OSThread("WebServer")
+WebServerThread::WebServerThread() : concurrency::OSThread("WebServerThread")
 {
     if (!config.network.wifi_enabled) {
         disable();
@@ -189,7 +190,7 @@ int32_t WebServerThread::runOnce()
 
 void initWebServer()
 {
-    LOG_DEBUG("Init Web Server");
+    LOG_DEBUG("Initializing Web Server ...\n");
 
     // We can now use the new certificate to setup our server as usual.
     secureServer = new HTTPSServer(cert);
@@ -198,16 +199,15 @@ void initWebServer()
     registerHandlers(insecureServer, secureServer);
 
     if (secureServer) {
-        LOG_INFO("Start Secure Web Server");
+        LOG_INFO("Starting Secure Web Server...\n");
         secureServer->start();
     }
-    LOG_INFO("Start Insecure Web Server");
+    LOG_INFO("Starting Insecure Web Server...\n");
     insecureServer->start();
     if (insecureServer->isRunning()) {
-        LOG_INFO("Web Servers Ready! :-) ");
+        LOG_INFO("Web Servers Ready! :-) \n");
         isWebServerReady = true;
     } else {
-        LOG_ERROR("Web Servers Failed! ;-( ");
+        LOG_ERROR("Web Servers Failed! ;-( \n");
     }
 }
-#endif

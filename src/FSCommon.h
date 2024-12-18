@@ -1,7 +1,6 @@
 #pragma once
 
 #include "configuration.h"
-#include <vector>
 
 // Cross platform filesystem API
 
@@ -15,13 +14,10 @@
 #endif
 
 #if defined(ARCH_STM32WL)
-// STM32WL series 2 Kbytes (8 rows of 256 bytes)
-#include <EEPROM.h>
-#include <OSFS.h>
-
-// Useful consts
-const OSFS::result noerr = OSFS::result::NO_ERROR;
-const OSFS::result notfound = OSFS::result::FILE_NOT_FOUND;
+#include "platform/stm32wl/InternalFileSystem.h" // STM32WL version
+#define FSCom InternalFS
+#define FSBegin() FSCom.begin()
+using namespace LittleFS_Namespace;
 #endif
 
 #if defined(ARCH_RP2040)
@@ -51,13 +47,8 @@ using namespace Adafruit_LittleFS_Namespace;
 #endif
 
 void fsInit();
-void fsListFiles();
 bool copyFile(const char *from, const char *to);
 bool renameFile(const char *pathFrom, const char *pathTo);
-std::vector<meshtastic_FileInfo> getFiles(const char *dirname, uint8_t levels);
-void listDir(const char *dirname, uint8_t levels, bool del = false);
+void listDir(const char *dirname, uint8_t levels, bool del);
 void rmDir(const char *dirname);
 void setupSDCard();
-
-extern bool lfs_assert_failed; // Note: we use this global on all platforms, though it can only be set true on nrf52 (in our
-                               // modified lfs_util.h)

@@ -1,16 +1,10 @@
-#include "configuration.h"
-
-#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
-
 #include "../mesh/generated/meshtastic/telemetry.pb.h"
 #include "TelemetrySensor.h"
 #include <bsec2.h>
 
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // That's 6 hours worth of millis()
 
-const uint8_t bsec_config[] = {
-#include "config/bme680/bme680_iaq_33v_3s_4d/bsec_iaq.txt"
-};
+#include "bme680_iaq_33v_3s_4d/bsec_iaq.h"
 
 class BME680Sensor : public TelemetrySensor
 {
@@ -42,5 +36,3 @@ class BME680Sensor : public TelemetrySensor
     virtual int32_t runOnce() override;
     virtual bool getMetrics(meshtastic_Telemetry *measurement) override;
 };
-
-#endif

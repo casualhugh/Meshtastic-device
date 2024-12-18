@@ -20,6 +20,9 @@ bool STM32WLE5JCInterface::init()
 
     lora.setRfSwitchTable(rfswitch_pins, rfswitch_table);
 
+    if (power == 0)
+        power = STM32WLx_MAX_POWER;
+
     if (power > STM32WLx_MAX_POWER) // This chip has lower power limits than some
         power = STM32WLx_MAX_POWER;
 
@@ -27,11 +30,11 @@ bool STM32WLE5JCInterface::init()
 
     int res = lora.begin(getFreq(), bw, sf, cr, syncWord, power, preambleLength, tcxoVoltage);
 
-    LOG_INFO("STM32WLx init result %d", res);
+    LOG_INFO("STM32WLx init result %d\n", res);
 
-    LOG_INFO("Frequency set to %f", getFreq());
-    LOG_INFO("Bandwidth set to %f", bw);
-    LOG_INFO("Power output set to %d", power);
+    LOG_INFO("Frequency set to %f\n", getFreq());
+    LOG_INFO("Bandwidth set to %f\n", bw);
+    LOG_INFO("Power output set to %d\n", power);
 
     if (res == RADIOLIB_ERR_NONE)
         startReceive(); // start receiving

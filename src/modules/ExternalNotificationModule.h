@@ -3,7 +3,7 @@
 #include "SinglePortModule.h"
 #include "concurrency/OSThread.h"
 #include "configuration.h"
-#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
 #include <NonBlockingRtttl.h>
 #else
 // Noop class for portduino.
@@ -32,13 +32,11 @@ class ExternalNotificationModule : public SinglePortModule, private concurrency:
   public:
     ExternalNotificationModule();
 
-    uint32_t nagCycleCutoff = 1;
+    uint32_t nagCycleCutoff = UINT32_MAX;
 
-    void setExternalState(uint8_t index = 0, bool on = false);
+    void setExternalOn(uint8_t index = 0);
+    void setExternalOff(uint8_t index = 0);
     bool getExternal(uint8_t index = 0);
-
-    void setMute(bool mute) { isMuted = mute; }
-    bool getMute() { return isMuted; }
 
     void stopNow();
 
@@ -57,8 +55,6 @@ class ExternalNotificationModule : public SinglePortModule, private concurrency:
     virtual bool wantPacket(const meshtastic_MeshPacket *p) override;
 
     bool isNagging = false;
-
-    bool isMuted = false;
 
     virtual AdminMessageHandleResult handleAdminMessageForModule(const meshtastic_MeshPacket &mp,
                                                                  meshtastic_AdminMessage *request,

@@ -1,7 +1,7 @@
 #include "UpDownInterruptBase.h"
 #include "configuration.h"
 
-UpDownInterruptBase::UpDownInterruptBase(const char *name) : concurrency::OSThread(name)
+UpDownInterruptBase::UpDownInterruptBase(const char *name)
 {
     this->_originName = name;
 }
@@ -23,49 +23,32 @@ void UpDownInterruptBase::init(uint8_t pinDown, uint8_t pinUp, uint8_t pinPress,
     attachInterrupt(this->_pinDown, onIntDown, RISING);
     attachInterrupt(this->_pinUp, onIntUp, RISING);
 
-    LOG_DEBUG("Up/down/press GPIO initialized (%d, %d, %d)", this->_pinUp, this->_pinDown, pinPress);
-
-    this->setInterval(100);
-}
-
-int32_t UpDownInterruptBase::runOnce()
-{
-    InputEvent e;
-    e.inputEvent = meshtastic_ModuleConfig_CannedMessageConfig_InputEventChar_NONE;
-
-    if (this->action == UPDOWN_ACTION_PRESSED) {
-        LOG_DEBUG("GPIO event Press");
-        e.inputEvent = this->_eventPressed;
-    } else if (this->action == UPDOWN_ACTION_UP) {
-        LOG_DEBUG("GPIO event Up");
-        e.inputEvent = this->_eventUp;
-    } else if (this->action == UPDOWN_ACTION_DOWN) {
-        LOG_DEBUG("GPIO event Down");
-        e.inputEvent = this->_eventDown;
-    }
-
-    if (e.inputEvent != meshtastic_ModuleConfig_CannedMessageConfig_InputEventChar_NONE) {
-        e.source = this->_originName;
-        e.kbchar = meshtastic_ModuleConfig_CannedMessageConfig_InputEventChar_NONE;
-        this->notifyObservers(&e);
-    }
-
-    this->action = UPDOWN_ACTION_NONE;
-
-    return 100;
+    LOG_DEBUG("Up/down/press GPIO initialized (%d, %d, %d)\n", this->_pinUp, this->_pinDown, pinPress);
 }
 
 void UpDownInterruptBase::intPressHandler()
 {
-    this->action = UPDOWN_ACTION_PRESSED;
+    InputEvent e;
+    e.source = this->_originName;
+    LOG_DEBUG("GPIO event Press\n");
+    e.inputEvent = this->_eventPressed;
+    this->notifyObservers(&e);
 }
 
 void UpDownInterruptBase::intDownHandler()
 {
-    this->action = UPDOWN_ACTION_DOWN;
+    InputEvent e;
+    e.source = this->_originName;
+    LOG_DEBUG("GPIO event Down\n");
+    e.inputEvent = this->_eventDown;
+    this->notifyObservers(&e);
 }
 
 void UpDownInterruptBase::intUpHandler()
 {
-    this->action = UPDOWN_ACTION_UP;
+    InputEvent e;
+    e.source = this->_originName;
+    LOG_DEBUG("GPIO event Up\n");
+    e.inputEvent = this->_eventUp;
+    this->notifyObservers(&e);
 }

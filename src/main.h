@@ -11,6 +11,9 @@
 #include "mesh/generated/meshtastic/telemetry.pb.h"
 #include <SPI.h>
 #include <map>
+#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
+#include <SparkFun_ATECCX08a_Arduino_Library.h>
+#endif
 #if defined(ARCH_ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S2)
 #include "nimble/NimbleBluetooth.h"
 extern NimbleBluetooth *nimbleBluetooth;
@@ -19,15 +22,7 @@ extern NimbleBluetooth *nimbleBluetooth;
 #include "NRF52Bluetooth.h"
 extern NRF52Bluetooth *nrf52Bluetooth;
 #endif
-#if !MESHTASTIC_EXCLUDE_I2C
-#include "detect/ScanI2CTwoWire.h"
-#endif
 
-#if ARCH_PORTDUINO
-extern HardwareSPI *DisplaySPI;
-extern HardwareSPI *LoraSPI;
-
-#endif
 extern ScanI2C::DeviceAddress screen_found;
 extern ScanI2C::DeviceAddress cardkb_found;
 extern uint8_t kb_model;
@@ -41,27 +36,21 @@ extern bool pmu_found;
 extern bool isCharging;
 extern bool isUSBPowered;
 
-#ifdef T_WATCH_S3
-#include <Adafruit_DRV2605.h>
-extern Adafruit_DRV2605 drv;
-#endif
-
-#ifdef HAS_I2S
-#include "AudioThread.h"
-extern AudioThread *audioThread;
-#endif
-
-// Global Screen singleton.
-extern graphics::Screen *screen;
-
-#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL) && !MESHTASTIC_EXCLUDE_I2C
-#include "motion/AccelerometerThread.h"
-extern AccelerometerThread *accelerometerThread;
+#if !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
+extern ATECCX08A atecc;
 #endif
 
 extern bool isVibrating;
 
 extern int TCPPort; // set by Portduino
+
+// Global Screen singleton.
+extern graphics::Screen *screen;
+// extern Observable<meshtastic::PowerStatus> newPowerStatus; //TODO: move this to main-esp32.cpp somehow or a helper class
+
+// extern meshtastic::PowerStatus *powerStatus;
+// extern meshtastic::GPSStatus *gpsStatus;
+// extern meshtastic::NodeStatusHandler *nodeStatusHandler;
 
 // Return a human readable string of the form "Meshtastic_ab13"
 const char *getDeviceName();
@@ -73,19 +62,15 @@ extern uint32_t shutdownAtMsec;
 
 extern uint32_t serialSinceMsec;
 
+extern int heltec_version;
+
 // If a thread does something that might need for it to be rescheduled ASAP it can set this flag
 // This will suppress the current delay and instead try to run ASAP.
 extern bool runASAP;
 
-extern bool pauseBluetoothLogging;
-
-void nrf52Setup(), esp32Setup(), nrf52Loop(), esp32Loop(), rp2040Setup(), clearBonds(), enterDfuMode();
+void nrf52Setup(), esp32Setup(), nrf52Loop(), esp32Loop(), rp2040Setup(), clearBonds();
 
 meshtastic_DeviceMetadata getDeviceMetadata();
-#if !MESHTASTIC_EXCLUDE_I2C
-void scannerToSensorsMap(const std::unique_ptr<ScanI2CTwoWire> &i2cScanner, ScanI2C::DeviceType deviceType,
-                         meshtastic_TelemetrySensorType sensorType);
-#endif
 
-// We default to 4MHz SPI, SPI mode 0
+// FIXME, we default to 4MHz SPI, SPI mode 0, check if the datasheet says it can really do that
 extern SPISettings spiSettings;

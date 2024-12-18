@@ -50,8 +50,6 @@
 
 #include "xmodem.h"
 
-#ifdef FSCom
-
 XModemAdapter xModem;
 
 XModemAdapter::XModemAdapter() {}
@@ -97,7 +95,7 @@ void XModemAdapter::sendControl(meshtastic_XModem_Control c)
 {
     xmodemStore = meshtastic_XModem_init_zero;
     xmodemStore.control = c;
-    LOG_DEBUG("XModem: Notify Send control %d", c);
+    LOG_DEBUG("XModem: Notify Sending control %d.\n", c);
     packetReady.notifyObservers(packetno);
 }
 
@@ -131,7 +129,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
                 isReceiving = false;
                 break;
             } else { // Transmit this file from Flash
-                LOG_INFO("XModem: Transmit file %s", filename);
+                LOG_INFO("XModem: Transmitting file %s\n", filename);
                 file = FSCom.open(filename, FILE_O_READ);
                 if (file) {
                     packetno = 1;
@@ -141,7 +139,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
                     xmodemStore.seq = packetno;
                     xmodemStore.buffer.size = file.read(xmodemStore.buffer.bytes, sizeof(meshtastic_XModem_buffer_t::bytes));
                     xmodemStore.crc16 = crc16_ccitt(xmodemStore.buffer.bytes, xmodemStore.buffer.size);
-                    LOG_DEBUG("XModem: STX Notify Send packet %d, %d Bytes", packetno, xmodemStore.buffer.size);
+                    LOG_DEBUG("XModem: STX Notify Sending packet %d, %d Bytes.\n", packetno, xmodemStore.buffer.size);
                     if (xmodemStore.buffer.size < sizeof(meshtastic_XModem_buffer_t::bytes)) {
                         isEOT = true;
                         // send EOT on next Ack
@@ -196,7 +194,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
             if (isEOT) {
                 sendControl(meshtastic_XModem_Control_EOT);
                 file.close();
-                LOG_INFO("XModem: Finished send file %s", filename);
+                LOG_INFO("XModem: Finished sending file %s\n", filename);
                 isTransmitting = false;
                 isEOT = false;
                 break;
@@ -208,7 +206,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
             xmodemStore.seq = packetno;
             xmodemStore.buffer.size = file.read(xmodemStore.buffer.bytes, sizeof(meshtastic_XModem_buffer_t::bytes));
             xmodemStore.crc16 = crc16_ccitt(xmodemStore.buffer.bytes, xmodemStore.buffer.size);
-            LOG_DEBUG("XModem: ACK Notify Send packet %d, %d Bytes", packetno, xmodemStore.buffer.size);
+            LOG_DEBUG("XModem: ACK Notify Sending packet %d, %d Bytes.\n", packetno, xmodemStore.buffer.size);
             if (xmodemStore.buffer.size < sizeof(meshtastic_XModem_buffer_t::bytes)) {
                 isEOT = true;
                 // send EOT on next Ack
@@ -225,7 +223,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
             if (--retrans <= 0) {
                 sendControl(meshtastic_XModem_Control_CAN);
                 file.close();
-                LOG_INFO("XModem: Retransmit timeout, cancel file %s", filename);
+                LOG_INFO("XModem: Retransmit timeout, cancelling file %s\n", filename);
                 isTransmitting = false;
                 break;
             }
@@ -235,7 +233,7 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
             file.seek((packetno - 1) * sizeof(meshtastic_XModem_buffer_t::bytes));
             xmodemStore.buffer.size = file.read(xmodemStore.buffer.bytes, sizeof(meshtastic_XModem_buffer_t::bytes));
             xmodemStore.crc16 = crc16_ccitt(xmodemStore.buffer.bytes, xmodemStore.buffer.size);
-            LOG_DEBUG("XModem: NAK Notify Send packet %d, %d Bytes", packetno, xmodemStore.buffer.size);
+            LOG_DEBUG("XModem: NAK Notify Sending packet %d, %d Bytes.\n", packetno, xmodemStore.buffer.size);
             if (xmodemStore.buffer.size < sizeof(meshtastic_XModem_buffer_t::bytes)) {
                 isEOT = true;
                 // send EOT on next Ack
@@ -251,4 +249,3 @@ void XModemAdapter::handlePacket(meshtastic_XModem xmodemPacket)
         break;
     }
 }
-#endif
