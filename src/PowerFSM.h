@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Fsm.h>
+#include "configuration.h"
 
 // See sw-design.md for documentation
 typedef enum {
@@ -24,7 +24,30 @@ typedef enum {
     EVENT_PRESS_ALT
 } EventTypes;
 
+#if EXCLUDE_POWER_FSM
+class FakeFsm
+{
+  public:
+    void trigger(int event)
+    {
+        if (event == EVENT_SERIAL_CONNECTED) {
+            serialConnected = true;
+        } else if (event == EVENT_SERIAL_DISCONNECTED) {
+            serialConnected = false;
+        }
+    };
+    bool getState() { return serialConnected; };
+
+  private:
+    bool serialConnected = false;
+};
+extern FakeFsm powerFSM;
+void PowerFSM_setup();
+
+#else
+#include <Fsm.h>
 extern Fsm powerFSM;
 extern State stateON, statePOWER, stateSERIAL, stateDARK;
 
 void PowerFSM_setup();
+#endif
