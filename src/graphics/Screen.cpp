@@ -161,28 +161,26 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
                      icon_width, icon_height, icon_bits);
 
     display->setFont(FONT_MEDIUM);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 #ifdef USERPREFS_SPLASH_TITLE
     const char *title = USERPREFS_SPLASH_TITLE;
 #else
     const char *title = "meshtastic.org";
 #endif
-    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, title);
+    display->drawString(x + SCREEN_WIDTH / 2, y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM * 2, title);
     display->setFont(FONT_SMALL);
 
     // Draw region in upper left
     if (upperMsg)
-        display->drawString(x + 0, y + 0, upperMsg);
+        display->drawString(x + SCREEN_WIDTH / 2, y + FONT_HEIGHT_MEDIUM, upperMsg);
 
     // Draw version and short name in upper right
     char buf[25];
     snprintf(buf, sizeof(buf), "%s\n%s", xstr(APP_VERSION_SHORT), haveGlyphs(owner.short_name) ? owner.short_name : "");
 
     display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->drawString(x + SCREEN_WIDTH, y + 0, buf);
+    display->drawString(x + SCREEN_WIDTH / 2, y + 5, buf);
     screen->forceDisplay();
-
-    display->setTextAlignment(TEXT_ALIGN_LEFT); // Restore left align, just to be kind to any other unsuspecting code
 }
 
 void Screen::drawFrameText(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y, const char *message)
@@ -198,7 +196,7 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->drawString(64 + x, y, "Creating SSL certificate");
+    display->drawString(x + display->width() / 2, y, "Creating SSL certificate");
 
 #ifdef ARCH_ESP32
     yield();
@@ -207,9 +205,9 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 
     display->setFont(FONT_SMALL);
     if ((millis() / 1000) % 2) {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . . .");
+        display->drawString(x + display->width() / 2, FONT_HEIGHT_SMALL + y + 2, "Please wait . . .");
     } else {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . .  ");
+        display->drawString(x + display->width() / 2, FONT_HEIGHT_SMALL + y + 2, "Please wait . .  ");
     }
 }
 
@@ -218,18 +216,18 @@ static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, i
 {
     display->setFont(FONT_SMALL);
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->drawString(64 + x, y, "//\\ E S H T /\\ S T / C");
-    display->drawString(64 + x, y + FONT_HEIGHT_SMALL, getDeviceName());
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->drawString(x + display->width() / 2, y, "\\// H E R E   U");
+    display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL, getDeviceName());
+
 
     if ((millis() / 10000) % 2) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Set the region using the");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "Meshtastic Android, iOS,");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "Web or CLI clients.");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 2 - 3, "Set the region using the");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 3 - 3, "Meshtastic Android, iOS,");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 4 - 3, "Web or CLI clients.");
     } else {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Visit meshtastic.org");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "for more information.");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 2 - 3, "Visit meshtastic.org");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 3 - 3, "for more information.");
+        display->drawString(x + display->width() / 2, y + FONT_HEIGHT_SMALL * 4 - 3, "");
     }
 
 #ifdef ARCH_ESP32
@@ -238,7 +236,7 @@ static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, i
 #endif
 }
 
-// draw overlay in bottom right corner of screen to show when notifications are muted or modifier key is active
+// draw overlay in bottom center of screen to show when notifications are muted or modifier key is active
 static void drawFunctionOverlay(OLEDDisplay *display, OLEDDisplayUiState *state)
 {
     // LOG_DEBUG("Draw function overlay");
@@ -246,7 +244,7 @@ static void drawFunctionOverlay(OLEDDisplay *display, OLEDDisplayUiState *state)
         char buf[64];
         display->setFont(FONT_SMALL);
         snprintf(buf, sizeof(buf), "%s", functionSymbolString.c_str());
-        display->drawString(SCREEN_WIDTH - display->getStringWidth(buf), SCREEN_HEIGHT - FONT_HEIGHT_SMALL, buf);
+        display->drawString(SCREEN_WIDTH / 2 - display->getStringWidth(buf), SCREEN_HEIGHT - FONT_HEIGHT_SMALL, buf);
     }
 }
 
@@ -274,7 +272,7 @@ static void drawScreensaverOverlay(OLEDDisplay *display, OLEDDisplayUiState *sta
 
     // Config
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     const char *pauseText = "Screen Paused";
     const char *idText = owner.short_name;
     const bool useId = haveGlyphs(idText); // This bool is used to hide the idText box if we can't render the short name
@@ -345,26 +343,26 @@ static void drawFrameFirmware(OLEDDisplay *display, OLEDDisplayUiState *state, i
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(64 + x, y, "Updating");
+    display->drawString(x + display->width() / 2, y, "Updating");
 
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->drawStringMaxWidth(0 + x, 2 + y + FONT_HEIGHT_SMALL * 2, x + display->getWidth(),
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->drawStringMaxWidth(x + display->width() / 2, 2 + y + FONT_HEIGHT_SMALL * 2, x + display->getWidth(),
                                 "Please be patient and do not power off.");
 }
 
 /// Draw the last text message we received
 static void drawCriticalFaultFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
 
     char tempBuf[24];
     snprintf(tempBuf, sizeof(tempBuf), "Critical fault #%d", error_code);
-    display->drawString(0 + x, 0 + y, tempBuf);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->drawString(x + display->width() / 2, 0 + y, tempBuf);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->drawString(0 + x, FONT_HEIGHT_MEDIUM + y, "For help, please visit \nmeshtastic.org");
+    display->drawString(x + display->width() / 2, FONT_HEIGHT_MEDIUM + y, "For help, please visit \nmeshtastic.org");
 }
 
 // Ignore messages originating from phone (from the current node 0x0) unless range test or store and forward module are enabled
@@ -392,7 +390,7 @@ static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *img
                 memcpy(imgBuffer + 1 + (i * 3), powerBar, 3);
         }
     }
-    display->drawFastImage(x, y, 16, 8, imgBuffer);
+    display->drawFastImage(x + display->width() / 2, y, 16, 8, imgBuffer);
 }
 
 #if defined(DISPLAY_CLOCK_FRAME)
@@ -434,7 +432,7 @@ void Screen::drawWatchFaceToggleButton(OLEDDisplay *display, int16_t x, int16_t 
 // Draw a digital clock
 void Screen::drawDigitalClockFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     drawBattery(display, x, y + 7, imgBattery, powerStatus);
 
@@ -666,7 +664,7 @@ void Screen::drawBluetoothConnectedIcon(OLEDDisplay *display, int16_t x, int16_t
 // Draw an analog clock
 void Screen::drawAnalogClockFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     drawBattery(display, x, y + 7, imgBattery, powerStatus);
 
@@ -917,7 +915,7 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     // Demo for drawStringMaxWidth:
     // with the third parameter you can define the width after which words will
     // be wrapped. Currently only spaces and "-" are allowed for wrapping
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
@@ -939,17 +937,17 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     for (uint8_t xOff = 0; xOff <= (config.display.heading_bold ? 1 : 0); xOff++) {
         // Show a timestamp if received today, but longer than 15 minutes ago
         if (useTimestamp && minutes >= 15 && daysAgo == 0) {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "At %02hu:%02hu from %s", timestampHours, timestampMinutes,
+            display->drawStringf(xOff + x + display->width() / 2, 0 + y, tempBuf, "At %02hu:%02hu from %s", timestampHours, timestampMinutes,
                                  (node && node->has_user) ? node->user.short_name : "???");
         }
         // Timestamp yesterday (if display is wide enough)
         else if (useTimestamp && daysAgo == 1 && display->width() >= 200) {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "Yesterday %02hu:%02hu from %s", timestampHours, timestampMinutes,
+            display->drawStringf(xOff + x + display->width() / 2, 0 + y, tempBuf, "Yesterday %02hu:%02hu from %s", timestampHours, timestampMinutes,
                                  (node && node->has_user) ? node->user.short_name : "???");
         }
         // Otherwise, show a time delta
         else {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "%s ago from %s",
+            display->drawStringf(xOff + x + display->width() / 2, 0 + y, tempBuf, "%s ago from %s",
                                  screen->drawTimeDelta(days, hours, minutes, seconds).c_str(),
                                  (node && node->has_user) ? node->user.short_name : "???");
         }
@@ -1032,7 +1030,7 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
 void Screen::drawColumns(OLEDDisplay *display, int16_t x, int16_t y, const char **fields)
 {
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     const char **f = fields;
     int xo = x, yo = y;
@@ -1378,7 +1376,7 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
@@ -2358,7 +2356,7 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
@@ -2472,7 +2470,7 @@ void DebugInfo::drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, i
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
@@ -2552,7 +2550,7 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);

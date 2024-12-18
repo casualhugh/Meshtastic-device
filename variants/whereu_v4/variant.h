@@ -21,11 +21,11 @@
 
 // #define LED_PIN 46
 // #define LED_STATE_ON 0 // State when LED is litted
-
+#define USERPREFS_SPLASH_TITLE "WHERE U"
 #define BUTTON_PIN 36
 #define BUTTON_PIN_ALT 38
 // #define USE_RF95   // RFM95/SX127x
-
+#define CANNED_MESSAGE_MODULE_ENABLE 1
 #undef RF95_SCK
 #undef RF95_MISO
 #undef RF95_MOSI
