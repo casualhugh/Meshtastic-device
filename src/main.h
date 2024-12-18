@@ -3,6 +3,7 @@
 #include "GPSStatus.h"
 #include "NodeStatus.h"
 #include "PowerStatus.h"
+#include "MagnotometerStatus.h"
 #include "detect/ScanI2C.h"
 #include "graphics/Screen.h"
 #include "memGet.h"
@@ -32,6 +33,7 @@ extern ScanI2C::DeviceAddress cardkb_found;
 extern uint8_t kb_model;
 extern ScanI2C::DeviceAddress rtc_found;
 extern ScanI2C::DeviceAddress accelerometer_found;
+extern ScanI2C::DeviceAddress magnotometer_found;
 extern ScanI2C::FoundDevice rgb_found;
 
 extern bool eink_found;

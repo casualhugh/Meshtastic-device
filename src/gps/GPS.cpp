@@ -28,6 +28,8 @@
 #define GPS_RESET_MODE HIGH
 #endif
 
+HardwareSerial _serial_gps_real(2);
+HardwareSerial *GPS::_serial_gps = &_serial_gps_real;
 // Not all platforms have std::size().
 template <typename T, std::size_t N> std::size_t array_count(const T (&)[N])
 {
@@ -88,7 +90,8 @@ static void UBXChecksum(uint8_t *message, size_t length)
     uint8_t CK_A = 0, CK_B = 0;
 
     // Calculate the checksum, starting from the CLASS field (which is message[2])
-    for (size_t i = 2; i < length - 2; i++) {
+    for (size_t i = 2; i < length - 2; i++)
+    {
         CK_A = (CK_A + message[i]) & 0xFF;
         CK_B = (CK_B + CK_A) & 0xFF;
     }
@@ -134,7 +137,8 @@ uint8_t GPS::makeUBXPacket(uint8_t class_id, uint8_t msg_id, uint8_t payload_siz
     UBXscratch[6 + payload_size] = 0x00; // CK_A
     UBXscratch[7 + payload_size] = 0x00; // CK_B
 
-    for (int i = 0; i < payload_size; i++) {
+    for (int i = 0; i < payload_size; i++)
+    {
         UBXscratch[6 + i] = pgm_read_byte(&msg[i]);
     }
     UBXChecksum(UBXscratch, (payload_size + 8));
@@ -194,13 +198,17 @@ GPS_RESPONSE GPS::getACK(const char *message, uint32_t waitMillis)
 #endif
             buffer[bytesRead] = b;
             bytesRead++;
-            if ((bytesRead == 767) || (b == '\r')) {
-                if (strnstr((char *)buffer, message, bytesRead) != nullptr) {
+            if ((bytesRead == 767) || (b == '\r'))
+            {
+                if (strnstr((char *)buffer, message, bytesRead) != nullptr)
+                {
 #ifdef GPS_DEBUG
                     LOG_DEBUG("Found: %s", message); // Log the found message
 #endif
                     return GNSS_RESPONSE_OK;
-                } else {
+                }
+                else
+                {
                     bytesRead = 0;
 #ifdef GPS_DEBUG
                     LOG_DEBUG(debugmsg.c_str());
@@ -286,12 +294,14 @@ GPS_RESPONSE GPS::getACK(uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
     std::string debugmsg = "";
 #endif
 
-    for (int j = 2; j < 6; j++) {
+    for (int j = 2; j < 6; j++)
+    {
         buf[8] += buf[j];
         buf[9] += buf[8];
     }
 
-    for (int j = 0; j < 2; j++) {
+    for (int j = 0; j < 2; j++)
+    {
         buf[6 + j] = ackP[j];
         buf[8] += buf[6 + j];
         buf[9] += buf[8];
@@ -304,9 +314,11 @@ GPS_RESPONSE GPS::getACK(uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
 #endif
             return GNSS_RESPONSE_OK; // ACK received
         }
-        if (_serial_gps->available()) {
+        if (_serial_gps->available())
+        {
             b = _serial_gps->read();
-            if (b == frame_errors[sCounter]) {
+            if (b == frame_errors[sCounter])
+            {
                 sCounter++;
                 if (sCounter == 26) {
 #ifdef GPS_DEBUG
@@ -315,16 +327,22 @@ GPS_RESPONSE GPS::getACK(uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
 #endif
                     return GNSS_RESPONSE_FRAME_ERRORS;
                 }
-            } else {
+            }
+            else
+            {
                 sCounter = 0;
             }
 #ifdef GPS_DEBUG
             debugmsg += vformat("%02X", b);
 #endif
-            if (b == buf[ack]) {
+            if (b == buf[ack])
+            {
                 ack++;
-            } else {
-                if (ack == 3 && b == 0x00) { // UBX-ACK-NAK message
+            }
+            else
+            {
+                if (ack == 3 && b == 0x00)
+                { // UBX-ACK-NAK message
 #ifdef GPS_DEBUG
                     LOG_DEBUG(debugmsg.c_str());
 #endif
@@ -360,34 +378,45 @@ int GPS::getACK(uint8_t *buffer, uint16_t size, uint8_t requestedClass, uint8_t 
     while (Throttle::isWithinTimespanMs(startTime, waitMillis)) {
         if (_serial_gps->available()) {
             int c = _serial_gps->read();
-            switch (ubxFrameCounter) {
+            switch (ubxFrameCounter)
+            {
             case 0:
                 // ubxFrame 'μ'
-                if (c == 0xB5) {
+                if (c == 0xB5)
+                {
                     ubxFrameCounter++;
                 }
                 break;
             case 1:
                 // ubxFrame 'b'
-                if (c == 0x62) {
+                if (c == 0x62)
+                {
                     ubxFrameCounter++;
-                } else {
+                }
+                else
+                {
                     ubxFrameCounter = 0;
                 }
                 break;
             case 2:
                 // Class
-                if (c == requestedClass) {
+                if (c == requestedClass)
+                {
                     ubxFrameCounter++;
-                } else {
+                }
+                else
+                {
                     ubxFrameCounter = 0;
                 }
                 break;
             case 3:
                 // Message ID
-                if (c == requestedID) {
+                if (c == requestedID)
+                {
                     ubxFrameCounter++;
-                } else {
+                }
+                else
+                {
                     ubxFrameCounter = 0;
                 }
                 break;
@@ -401,13 +430,17 @@ int GPS::getACK(uint8_t *buffer, uint16_t size, uint8_t requestedClass, uint8_t 
                 needRead |= (c << 8);
                 ubxFrameCounter++;
                 // Check for buffer overflow
-                if (needRead >= size) {
+                if (needRead >= size)
+                {
                     ubxFrameCounter = 0;
                     break;
                 }
-                if (_serial_gps->readBytes(buffer, needRead) != needRead) {
+                if (_serial_gps->readBytes(buffer, needRead) != needRead)
+                {
                     ubxFrameCounter = 0;
-                } else {
+                }
+                else
+                {
                     // return payload length
 #ifdef GPS_DEBUG
                     LOG_INFO("Got ACK for class %02X message %02X in %dms", requestedClass, requestedID, millis() - startTime);
@@ -473,6 +506,7 @@ bool GPS::setup()
         } else {
             return false;
         }
+
 
         if (gnssModel == GNSS_MODEL_MTK) {
             /*
@@ -929,7 +963,8 @@ void GPS::setPowerUBLOX(bool on, uint32_t sleepMs)
 /// Record that we have a GPS
 void GPS::setConnected()
 {
-    if (!hasGPS) {
+    if (!hasGPS)
+    {
         hasGPS = true;
         shouldPublish = true;
     }
@@ -988,7 +1023,8 @@ void GPS::down()
 
 void GPS::publishUpdate()
 {
-    if (shouldPublish) {
+    if (shouldPublish)
+    {
         shouldPublish = false;
 
         // In debug logs, identify position by @timestamp:stage (stage 2 = publish)
@@ -1030,7 +1066,8 @@ int32_t GPS::runOnce()
     }
 
     // Repeaters have no need for GPS
-    if (config.device.role == meshtastic_Config_DeviceConfig_Role_REPEATER) {
+    if (config.device.role == meshtastic_Config_DeviceConfig_Role_REPEATER)
+    {
         return disable();
     }
 
@@ -1051,7 +1088,8 @@ int32_t GPS::runOnce()
         }
     }
     // At least one GPS has a bad habit of losing its mind from time to time
-    if (rebootsSeen > 2) {
+    if (rebootsSeen > 2)
+    {
         rebootsSeen = 0;
         LOG_DEBUG("Would normally factoryReset()");
         // gps->factoryReset();
@@ -1203,17 +1241,17 @@ GnssModel_t GPS::probe(int serialSpeed)
         LOG_INFO("UBlox Frame Errors (baudrate %d)", serialSpeed);
     }
 
-    memset(buffer, 0, sizeof(buffer));
-    uint8_t _message_MONVER[8] = {
-        0xB5, 0x62, // Sync message for UBX protocol
-        0x0A, 0x04, // Message class and ID (UBX-MON-VER)
-        0x00, 0x00, // Length of payload (we're asking for an answer, so no payload)
-        0x00, 0x00  // Checksum
-    };
-    //  Get Ublox gnss module hardware and software info
-    UBXChecksum(_message_MONVER, sizeof(_message_MONVER));
-    clearBuffer();
-    _serial_gps->write(_message_MONVER, sizeof(_message_MONVER));
+    // memset(buffer, 0, sizeof(buffer));
+    // uint8_t _message_MONVER[8] = {
+    //     0xB5, 0x62, // Sync message for UBX protocol
+    //     0x0A, 0x04, // Message class and ID (UBX-MON-VER)
+    //     0x00, 0x00, // Length of payload (we're asking for an answer, so no payload)
+    //     0x00, 0x00  // Checksum
+    // };
+    // //  Get Ublox gnss module hardware and software info
+    // UBXChecksum(_message_MONVER, sizeof(_message_MONVER));
+    // clearBuffer();
+    // _serial_gps->write(_message_MONVER, sizeof(_message_MONVER));
 
     uint16_t len = getACK(buffer, sizeof(buffer), 0x0A, 0x04, 1200);
     if (len) {
@@ -1245,7 +1283,7 @@ GnssModel_t GPS::probe(int serialSpeed)
             LOG_DEBUG("  %s", ublox_info.extension[i]);
         }
 
-        memset(buffer, 0, sizeof(buffer));
+    //     memset(buffer, 0, sizeof(buffer));
 
         // tips: extensionNo field is 0 on some 6M GNSS modules
         for (int i = 0; i < ublox_info.extensionNo; ++i) {
@@ -1283,6 +1321,15 @@ GnssModel_t GPS::probe(int serialSpeed)
     }
     LOG_WARN("No GNSS Module (baudrate %d)", serialSpeed);
     return GNSS_MODEL_UNKNOWN;
+}
+
+
+int calculateChecksum(const char* sentence) {
+  int checksum = 0;
+  for (int i = 1; sentence[i] != '\0'; i++) {
+    checksum ^= sentence[i];
+  }
+  return checksum;
 }
 
 GPS *GPS::createGps()
@@ -1357,7 +1404,8 @@ GPS *GPS::createGps()
     digitalWrite(PIN_GPS_RESET, !GPS_RESET_MODE);
 #endif
 
-    if (_serial_gps) {
+    if (_serial_gps)
+    {
 #ifdef ARCH_ESP32
         // In esp32 framework, setRxBufferSize needs to be initialized before Serial
         _serial_gps->setRxBufferSize(SERIAL_BUFFER_SIZE); // the default is 256
@@ -1373,6 +1421,22 @@ GPS *GPS::createGps()
         _serial_gps->begin(GPS_BAUDRATE);
 #else
         _serial_gps->begin(GPS_BAUDRATE);
+#endif
+        // Send the PMTK353 command to enable all satellite systems
+        _serial_gps->print("$PMTK353,1,1,1,0,1*"); // Enable GPS, GLONASS, Galileo, BDS
+
+        // Calculate and append the checksum
+        int checksum = calculateChecksum("$PMTK353,1,1,1,0,1");
+        if (checksum < 16) {
+            _serial_gps->print("0");
+        }
+        _serial_gps->println(checksum, HEX);
+
+        /*
+         * T-Beam-S3-Core will be preset to use gps Probe here, and other boards will not be changed first
+         */
+#if defined(GPS_UC6580)
+        _serial_gps->updateBaudRate(115200);
 #endif
     }
     return new_gps;
@@ -1471,7 +1535,8 @@ bool GPS::lookForTime()
 #endif
     auto ti = reader.time;
     auto d = reader.date;
-    if (ti.isValid() && d.isValid()) { // Note: we don't check for updated, because we'll only be called if needed
+    if (ti.isValid() && d.isValid())
+    { // Note: we don't check for updated, because we'll only be called if needed
         /* Convert to unix time
 The Unix epoch (or Unix time or POSIX time or Unix timestamp) is the number of seconds that have elapsed since January 1,
 1970 (midnight UTC/GMT), not counting leap seconds (in ISO 8601: 1970-01-01T00:00:00Z).
@@ -1489,9 +1554,11 @@ The Unix epoch (or Unix time or POSIX time or Unix timestamp) is the number of s
                       t.tm_sec, ti.age());
             perhapsSetRTC(RTCQualityGPS, t);
             return true;
-        } else
+        }
+        else
             return false;
-    } else
+    }
+    else
         return false;
 }
 
@@ -1629,12 +1696,15 @@ bool GPS::lookForLocation()
     p.timestamp = gm_mktime(&t);
 
     // Nice to have, if available
-    if (reader.satellites.isUpdated()) {
+    if (reader.satellites.isUpdated())
+    {
         p.sats_in_view = reader.satellites.value();
     }
 
-    if (reader.course.isUpdated() && reader.course.isValid()) {
-        if (reader.course.value() < 36000) { // sanity check
+    if (reader.course.isUpdated() && reader.course.isValid())
+    {
+        if (reader.course.value() < 36000)
+        { // sanity check
             p.ground_track =
                 reader.course.value() * 1e3; // Scale the heading (in degrees * 10^-2) to match the expected degrees * 10^-5
         } else {
@@ -1642,7 +1712,8 @@ bool GPS::lookForLocation()
         }
     }
 
-    if (reader.speed.isUpdated() && reader.speed.isValid()) {
+    if (reader.speed.isUpdated() && reader.speed.isValid())
+    {
         p.ground_speed = reader.speed.kmph();
     }
 
@@ -1652,7 +1723,8 @@ bool GPS::lookForLocation()
 bool GPS::hasLock()
 {
     // Using GPGGA fix quality indicator
-    if (fixQual >= 1 && fixQual <= 5) {
+    if (fixQual >= 1 && fixQual <= 5)
+    {
 #ifndef TINYGPS_OPTION_NO_CUSTOM_FIELDS
         // Use GPGSA fix type 2D/3D (better) if available
         if (fixType == 3 || fixType == 0) // zero means "no data received"
@@ -1686,19 +1758,25 @@ bool GPS::whileActive()
     }
 #endif
     // First consume any chars that have piled up at the receiver
-    while (_serial_gps->available() > 0) {
+    while (_serial_gps->available() > 0)
+    {
         int c = _serial_gps->read();
+        
         UBXscratch[charsInBuf] = c;
 #ifdef GPS_DEBUG
         debugmsg += vformat("%c", (c >= 32 && c <= 126) ? c : '.');
 #endif
         isValid |= reader.encode(c);
-        if (charsInBuf > sizeof(UBXscratch) - 10 || c == '\r') {
-            if (strnstr((char *)UBXscratch, "$GPTXT,01,01,02,u-blox ag - www.u-blox.com*50", charsInBuf)) {
+        if (charsInBuf > sizeof(UBXscratch) - 10 || c == '\r')
+        {
+            if (strnstr((char *)UBXscratch, "$GPTXT,01,01,02,u-blox ag - www.u-blox.com*50", charsInBuf))
+            {
                 rebootsSeen++;
             }
             charsInBuf = 0;
-        } else {
+        }
+        else
+        {
             charsInBuf++;
         }
     }

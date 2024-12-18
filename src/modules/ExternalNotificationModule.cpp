@@ -18,7 +18,6 @@
 #include "NodeDB.h"
 #include "RTC.h"
 #include "Router.h"
-#include "buzz/buzz.h"
 #include "configuration.h"
 #include "main.h"
 #include "mesh/generated/meshtastic/rtttl.pb.h"
@@ -80,7 +79,8 @@ static const char *rtttlConfigFile = "/prefs/ringtone.proto";
 
 int32_t ExternalNotificationModule::runOnce()
 {
-    if (!moduleConfig.external_notification.enabled) {
+    if (!moduleConfig.external_notification.enabled)
+    {
         return INT32_MAX; // we don't need this thread here...
     } else {
 
@@ -110,7 +110,8 @@ int32_t ExternalNotificationModule::runOnce()
         }
 
         // If the output is turned on, turn it back off after the given period of time.
-        if (isNagging) {
+        if (isNagging)
+        {
             if (externalTurnedOn[0] + (moduleConfig.external_notification.output_ms ? moduleConfig.external_notification.output_ms
                                                                                     : EXT_NOTIFICATION_MODULE_OUTPUT_MS) <
                 millis()) {
@@ -189,7 +190,9 @@ int32_t ExternalNotificationModule::runOnce()
         if (moduleConfig.external_notification.use_pwm && config.device.buzzer_gpio) {
             if (rtttl::isPlaying()) {
                 rtttl::play();
-            } else if (isNagging && (nagCycleCutoff >= millis())) {
+            }
+            else if (isNagging && (nagCycleCutoff >= millis()))
+            {
                 // start the song again if we have time left
                 rtttl::begin(config.device.buzzer_gpio, rtttlConfig.ringtone);
             }
@@ -215,7 +218,8 @@ void ExternalNotificationModule::setExternalState(uint8_t index, bool on)
     externalCurrentState[index] = on;
     externalTurnedOn[index] = millis();
 
-    switch (index) {
+    switch (index)
+    {
     case 1:
 #ifdef UNPHONE
         unphone.vibe(on); // the unPhone's vibration motor is on a i2c GPIO expander
@@ -242,7 +246,8 @@ void ExternalNotificationModule::setExternalState(uint8_t index, bool on)
 #endif
 
 #ifdef HAS_NCP5623
-    if (rgb_found.type == ScanI2C::NCP5623) {
+    if (rgb_found.type == ScanI2C::NCP5623)
+    {
         rgb.setColor(red, green, blue);
     }
 #endif
@@ -353,14 +358,17 @@ ExternalNotificationModule::ExternalNotificationModule()
                 pinMode(moduleConfig.external_notification.output_buzzer, OUTPUT);
                 setExternalState(2, false);
                 externalTurnedOn[2] = 0;
-            } else {
+            }
+            else
+            {
                 config.device.buzzer_gpio = config.device.buzzer_gpio ? config.device.buzzer_gpio : PIN_BUZZER;
                 // in PWM Mode we force the buzzer pin if it is set
                 LOG_INFO("Use Pin %i in PWM mode", config.device.buzzer_gpio);
             }
         }
 #ifdef HAS_NCP5623
-        if (rgb_found.type == ScanI2C::NCP5623) {
+        if (rgb_found.type == ScanI2C::NCP5623)
+        {
             rgb.begin();
             rgb.setCurrent(10);
         }
@@ -399,8 +407,10 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
             // Check if the message contains a bell character. Don't do this loop for every pin, just once.
             auto &p = mp.decoded;
             bool containsBell = false;
-            for (int i = 0; i < p.payload.size; i++) {
-                if (p.payload.bytes[i] == ASCII_BELL) {
+            for (int i = 0; i < p.payload.size; i++)
+            {
+                if (p.payload.bytes[i] == ASCII_BELL)
+                {
                     containsBell = true;
                 }
             }
@@ -412,7 +422,9 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                     setExternalState(0, true);
                     if (moduleConfig.external_notification.nag_timeout) {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                    } else {
+                    }
+                    else
+                    {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                     }
                 }
@@ -425,7 +437,9 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                     setExternalState(1, true);
                     if (moduleConfig.external_notification.nag_timeout) {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                    } else {
+                    }
+                    else
+                    {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                     }
                 }
@@ -444,9 +458,12 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                         rtttl::begin(config.device.buzzer_gpio, rtttlConfig.ringtone);
 #endif
                     }
-                    if (moduleConfig.external_notification.nag_timeout) {
+                    if (moduleConfig.external_notification.nag_timeout)
+                    {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                    } else {
+                    }
+                    else
+                    {
                         nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                     }
                 }
@@ -458,7 +475,9 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                 setExternalState(0, true);
                 if (moduleConfig.external_notification.nag_timeout) {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                } else {
+                }
+                else
+                {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                 }
             }
@@ -469,7 +488,9 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                 setExternalState(1, true);
                 if (moduleConfig.external_notification.nag_timeout) {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                } else {
+                }
+                else
+                {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                 }
             }
@@ -488,9 +509,12 @@ ProcessMessage ExternalNotificationModule::handleReceived(const meshtastic_MeshP
                     rtttl::begin(config.device.buzzer_gpio, rtttlConfig.ringtone);
 #endif
                 }
-                if (moduleConfig.external_notification.nag_timeout) {
+                if (moduleConfig.external_notification.nag_timeout)
+                {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.nag_timeout * 1000;
-                } else {
+                }
+                else
+                {
                     nagCycleCutoff = millis() + moduleConfig.external_notification.output_ms;
                 }
             }
@@ -518,7 +542,8 @@ AdminMessageHandleResult ExternalNotificationModule::handleAdminMessageForModule
 {
     AdminMessageHandleResult result;
 
-    switch (request->which_payload_variant) {
+    switch (request->which_payload_variant)
+    {
     case meshtastic_AdminMessage_get_ringtone_request_tag:
         LOG_INFO("Client getting ringtone");
         this->handleGetRingtone(mp, response);
@@ -551,7 +576,8 @@ void ExternalNotificationModule::handleSetRingtone(const char *from_msg)
 {
     int changed = 0;
 
-    if (*from_msg) {
+    if (*from_msg)
+    {
         changed |= strcmp(rtttlConfig.ringtone, from_msg);
         strncpy(rtttlConfig.ringtone, from_msg, sizeof(rtttlConfig.ringtone));
         LOG_INFO("*** from_msg.text:%s", from_msg);

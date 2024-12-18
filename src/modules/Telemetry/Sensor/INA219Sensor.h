@@ -6,11 +6,13 @@
 #include "TelemetrySensor.h"
 #include "VoltageSensor.h"
 #include <Adafruit_INA219.h>
-
+#include <INA226_WE.h>
 class INA219Sensor : public TelemetrySensor, VoltageSensor
 {
   private:
-    Adafruit_INA219 ina219;
+    // TODO(hugh): Replace me with the INA226 library
+    // Adafruit_INA219 ina219;
+    INA226_WE ina226;
 
   protected:
     virtual void setup() override;

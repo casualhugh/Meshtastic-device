@@ -131,6 +131,11 @@ class Point
 namespace graphics
 {
 
+typedef enum {
+  ENTER,
+  BACK
+} PressDirection;
+
 // Forward declarations
 class Screen;
 
@@ -168,6 +173,10 @@ class Screen : public concurrency::OSThread
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
     CallbackObserver<Screen, const meshtastic::Status *> gpsStatusObserver =
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
+    
+    CallbackObserver<Screen, const meshtastic::Status *> magnotometerStatusObserver =
+        CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
+
     CallbackObserver<Screen, const meshtastic::Status *> nodeStatusObserver =
         CallbackObserver<Screen, const meshtastic::Status *>(this, &Screen::handleStatusUpdate);
     CallbackObserver<Screen, const meshtastic_MeshPacket *> textMessageObserver =
@@ -231,6 +240,7 @@ class Screen : public concurrency::OSThread
 
     /// Handle button press, trackball or swipe action)
     void onPress() { enqueueCmd(ScreenCmd{.cmd = Cmd::ON_PRESS}); }
+    void onBackPress() { enqueueCmd(ScreenCmd{.cmd = Cmd::ON_BACK_PRESS}); }
     void showPrevFrame() { enqueueCmd(ScreenCmd{.cmd = Cmd::SHOW_PREV_FRAME}); }
     void showNextFrame() { enqueueCmd(ScreenCmd{.cmd = Cmd::SHOW_NEXT_FRAME}); }
 
@@ -503,8 +513,8 @@ class Screen : public concurrency::OSThread
     }
 
     // Implementations of various commands, called from doTask().
-    void handleSetOn(bool on, FrameCallback einkScreensaver = NULL);
-    void handleOnPress();
+    void handleSetOn(bool on);
+    void handleOnPress(PressDirection dir);
     void handleShowNextFrame();
     void handleShowPrevFrame();
     void handlePrint(const char *text);

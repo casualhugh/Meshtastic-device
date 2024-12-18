@@ -42,6 +42,8 @@ class ScanI2C
         MPU6050,
         LIS3DH,
         BMA423,
+        LSM303_ACC,
+        LSM303_MAG,
         BQ24295,
         LSM6DS3,
         TCA9535,
@@ -115,7 +117,7 @@ class ScanI2C
     FoundDevice firstKeyboard() const;
 
     FoundDevice firstAccelerometer() const;
-
+    FoundDevice firstMagnotometer() const;
     virtual FoundDevice find(DeviceType) const;
 
     virtual bool exists(DeviceType) const;

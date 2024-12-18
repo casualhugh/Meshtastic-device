@@ -73,7 +73,7 @@ class AmbientLightingThread : public concurrency::OSThread
 #ifdef HAS_NCP5623
         }
 #endif
-    }
+        }
 
   protected:
     int32_t runOnce() override
@@ -131,8 +131,8 @@ class AmbientLightingThread : public concurrency::OSThread
         return 0;
     }
 
-    void setLighting()
-    {
+        void setLighting()
+        {
 #ifdef HAS_NCP5623
         rgb.setCurrent(moduleConfig.ambient_lighting.current);
         rgb.setRed(moduleConfig.ambient_lighting.red);

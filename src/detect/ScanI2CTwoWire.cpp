@@ -40,10 +40,12 @@ ScanI2C::FoundDevice ScanI2CTwoWire::firstOfOrNONE(size_t count, DeviceType type
 {
     concurrency::LockGuard guard((concurrency::Lock *)&lock);
 
-    for (size_t k = 0; k < count; k++) {
+    for (size_t k = 0; k < count; k++)
+    {
         ScanI2C::DeviceType current = types[k];
 
-        if (exists(current)) {
+        if (exists(current))
+        {
             return ScanI2C::FoundDevice(current, deviceAddresses.at(current));
         }
     }
@@ -59,13 +61,15 @@ ScanI2C::DeviceType ScanI2CTwoWire::probeOLED(ScanI2C::DeviceAddress addr) const
     uint8_t r_prev = 0;
     uint8_t c = 0;
     ScanI2C::DeviceType o_probe = ScanI2C::DeviceType::SCREEN_UNKNOWN;
-    do {
+    do
+    {
         r_prev = r;
         i2cBus->beginTransmission(addr.address);
         i2cBus->write((uint8_t)0x00);
         i2cBus->endTransmission();
         i2cBus->requestFrom((int)addr.address, 1);
-        if (i2cBus->available()) {
+        if (i2cBus->available())
+        {
             r = i2cBus->read();
         }
         r &= 0x0f;
@@ -98,7 +102,9 @@ uint16_t ScanI2CTwoWire::getRegisterValue(const ScanI2CTwoWire::RegisterLocation
         // Read MSB, then LSB
         value = (uint16_t)i2cBus->read() << 8;
         value |= i2cBus->read();
-    } else if (i2cBus->available()) {
+    }
+    else if (i2cBus->available())
+    {
         value = i2cBus->read();
     }
     return value;
@@ -130,7 +136,9 @@ void ScanI2CTwoWire::scanPort(I2CPort port, uint8_t *address, uint8_t asize)
 #if WIRE_INTERFACES_COUNT == 2
     if (port == I2CPort::WIRE1) {
         i2cBus = &Wire1;
-    } else {
+    }
+    else
+    {
 #endif
         i2cBus = &Wire;
 #if WIRE_INTERFACES_COUNT == 2
@@ -186,7 +194,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port, uint8_t *address, uint8_t asize)
             case CARDKB_ADDR:
                 // Do we have the RAK14006 instead?
                 registerValue = getRegisterValue(ScanI2CTwoWire::RegisterLocation(addr, 0x04), 1);
-                if (registerValue == 0x02) {
+                if (registerValue == 0x02)
+                {
                     // KEYPAD_VERSION
                     logFoundDevice("RAK14004", (uint8_t)addr.address);
                     type = RAK14004;
@@ -209,7 +218,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port, uint8_t *address, uint8_t asize)
             case BME_ADDR:
             case BME_ADDR_ALTERNATE:
                 registerValue = getRegisterValue(ScanI2CTwoWire::RegisterLocation(addr, 0xD0), 1); // GET_ID
-                switch (registerValue) {
+                switch (registerValue)
+                {
                 case 0x61:
                     logFoundDevice("BME680", (uint8_t)addr.address);
                     type = BME_680;
@@ -364,6 +374,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port, uint8_t *address, uint8_t asize)
 
                 SCAN_SIMPLE_CASE(QMC5883L_ADDR, QMC5883L, "QMC5883L", (uint8_t)addr.address)
                 SCAN_SIMPLE_CASE(HMC5883L_ADDR, HMC5883L, "HMC5883L", (uint8_t)addr.address)
+                SCAN_SIMPLE_CASE(LSM303_MAG_ADDR, QMC5883L, "LSM303 Highrate 3-Axis magnetic sensor found\n")
+                SCAN_SIMPLE_CASE(LSM303_ACC_ADDR, MPU6050, "LSM303 accelerometer found\n")
 #ifdef HAS_QMA6100P
                 SCAN_SIMPLE_CASE(QMA6100P_ADDR, QMA6100P, "QMA6100P", (uint8_t)addr.address)
 #else
@@ -444,7 +456,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port, uint8_t *address, uint8_t asize)
         }
 
         // Check if a type was found for the enumerated device - save, if so
-        if (type != NONE) {
+        if (type != NONE)
+        {
             deviceAddresses[type] = addr;
             foundDevices[addr] = type;
         }
@@ -458,7 +471,8 @@ void ScanI2CTwoWire::scanPort(I2CPort port)
 
 TwoWire *ScanI2CTwoWire::fetchI2CBus(ScanI2C::DeviceAddress address) const
 {
-    if (address.port == ScanI2C::I2CPort::WIRE) {
+    if (address.port == ScanI2C::I2CPort::WIRE)
+    {
         return &Wire;
     } else {
 #if WIRE_INTERFACES_COUNT == 2

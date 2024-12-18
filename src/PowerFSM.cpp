@@ -83,6 +83,7 @@ static void lsEnter()
 {
     LOG_INFO("lsEnter begin, ls_secs=%u", config.power.ls_secs);
     screen->setOn(false);
+    
     secsSlept = 0; // How long have we been sleeping this time
 
     // LOG_INFO("lsEnter end");
@@ -161,6 +162,7 @@ static void nbEnter()
 {
     LOG_DEBUG("State: NB");
     screen->setOn(false);
+    
 #ifdef ARCH_ESP32
     // Only ESP32 should turn off bluetooth
     setBluetoothEnable(false);
@@ -173,6 +175,7 @@ static void darkEnter()
 {
     setBluetoothEnable(true);
     screen->setOn(false);
+    
 }
 
 static void serialEnter()
@@ -180,6 +183,7 @@ static void serialEnter()
     LOG_DEBUG("State: SERIAL");
     setBluetoothEnable(false);
     screen->setOn(true);
+    
     screen->print("Serial connected\n");
 }
 
@@ -200,6 +204,7 @@ static void powerEnter()
     } else {
         screen->setOn(true);
         setBluetoothEnable(true);
+        
         // within enter() the function getState() returns the state we came from
 
         // Mothballed: print change of power-state to device screen
@@ -234,6 +239,7 @@ static void onEnter()
     LOG_DEBUG("State: ON");
     screen->setOn(true);
     setBluetoothEnable(true);
+    
 }
 
 static void onIdle()
@@ -248,6 +254,12 @@ static void screenPress()
 {
     screen->onPress();
 }
+
+static void screenBackPress() 
+{
+    screen->onBackPress();
+}
+
 
 static void bootEnter()
 {
@@ -295,10 +307,22 @@ void PowerFSM_setup()
     powerFSM.add_transition(&stateLS, &stateON, EVENT_PRESS, NULL, "Press");
     powerFSM.add_transition(&stateNB, &stateON, EVENT_PRESS, NULL, "Press");
     powerFSM.add_transition(&stateDARK, isPowered() ? &statePOWER : &stateON, EVENT_PRESS, NULL, "Press");
-    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS, screenPress, "Press");
-    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS, screenPress, "Press"); // reenter On to restart our timers
-    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS, screenPress,
+    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS, screenBackPress, "Press");
+    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS, screenBackPress, "Press"); // reenter On to restart our timers
+    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS, screenBackPress,
                             "Press"); // Allow button to work while in serial API
+
+    // Handle press events - note: we ignore button presses when in API mode
+    powerFSM.add_transition(&stateLS, &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&stateNB, &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&stateDARK, isPowered() ? &statePOWER : &stateON, EVENT_PRESS_ALT, NULL, "Press");
+    powerFSM.add_transition(&statePOWER, &statePOWER, EVENT_PRESS_ALT, screenPress, "Press");
+    powerFSM.add_transition(&stateON, &stateON, EVENT_PRESS_ALT, screenPress, "Press"); // reenter On to restart our timers
+    powerFSM.add_transition(&stateSERIAL, &stateSERIAL, EVENT_PRESS_ALT, screenPress,
+                            "Press"); // Allow button to work while in serial API
+
+
+
 
     // Handle critically low power battery by forcing deep sleep
     powerFSM.add_transition(&stateBOOT, &stateLowBattSDS, EVENT_LOW_BATTERY, NULL, "LowBat");

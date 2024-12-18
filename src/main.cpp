@@ -27,7 +27,7 @@
 #include <Wire.h>
 #endif
 #include "detect/einkScan.h"
-#include "graphics/RAKled.h"
+// #include "graphics/RAKled.h"
 #include "graphics/Screen.h"
 #include "main.h"
 #include "mesh/generated/meshtastic/config.pb.h"
@@ -132,13 +132,16 @@ meshtastic::GPSStatus *gpsStatus = new meshtastic::GPSStatus();
 // Global Node status
 meshtastic::NodeStatus *nodeStatus = new meshtastic::NodeStatus();
 
+// Global Magnotometer status
+meshtastic::MagnotometerStatus * magnotometerStatus = new meshtastic::MagnotometerStatus();
+
 // Scan for I2C Devices
 
 /// The I2C address of our display (if found)
-ScanI2C::DeviceAddress screen_found = ScanI2C::ADDRESS_NONE;
+ScanI2C::DeviceAddress screen_found = ScanI2C::ADDRESS_NONE; // Todo(hugh): screen is spi not i2c
 
 // The I2C address of the cardkb or RAK14004 (if found)
-ScanI2C::DeviceAddress cardkb_found = ScanI2C::ADDRESS_NONE;
+ScanI2C::DeviceAddress cardkb_found = ScanI2C::ADDRESS_NONE; // Todo(hugh): Dont have this
 // 0x02 for RAK14004, 0x00 for cardkb, 0x10 for T-Deck
 uint8_t kb_model;
 
@@ -146,6 +149,8 @@ uint8_t kb_model;
 ScanI2C::DeviceAddress rtc_found = ScanI2C::ADDRESS_NONE;
 // The I2C address of the Accelerometer (if found)
 ScanI2C::DeviceAddress accelerometer_found = ScanI2C::ADDRESS_NONE;
+// The I2C address of the Accelerometer (if found)
+ScanI2C::DeviceAddress magnotometer_found = ScanI2C::ADDRESS_NONE;
 // The I2C address of the RGB LED (if found)
 ScanI2C::FoundDevice rgb_found = ScanI2C::FoundDevice(ScanI2C::DeviceType::NONE, ScanI2C::ADDRESS_NONE);
 
@@ -184,7 +189,9 @@ const char *getDeviceName()
     // if the shortname exists and is NOT the new default of ab3c, use it for BLE name.
     if (strcmp(owner.short_name, name) != 0) {
         snprintf(name, sizeof(name), "%s_%02x%02x", owner.short_name, dmac[4], dmac[5]);
-    } else {
+    }
+    else
+    {
         snprintf(name, sizeof(name), "Meshtastic_%02x%02x", dmac[4], dmac[5]);
     }
     return name;
@@ -237,6 +244,7 @@ void printInfo()
 #ifndef PIO_UNIT_TESTING
 void setup()
 {
+
     concurrency::hasBeenSetup = true;
 #if ARCH_PORTDUINO
     SPISettings spiSettings(settingsMap[spiSpeed], MSBFIRST, SPI_MODE0);
@@ -342,6 +350,13 @@ void setup()
     gpio_pullup_en((gpio_num_t)(config.device.button_gpio ? config.device.button_gpio : BUTTON_PIN));
     delay(10);
 #endif
+#ifdef BUTTON_PIN_2
+#ifdef ARCH_ESP32
+
+    // If the button is connected to GPIO 12, don't enable the ability to use
+    // meshtasticAdmin on the device.
+    pinMode(BUTTON_PIN_2, INPUT);
+
 #endif
 #endif
 #endif
@@ -395,7 +410,6 @@ void setup()
 #endif
 
 #ifdef PIN_LCD_RESET
-    // FIXME - move this someplace better, LCD is at address 0x3F
     pinMode(PIN_LCD_RESET, OUTPUT);
     digitalWrite(PIN_LCD_RESET, 0);
     delay(1);
@@ -474,7 +488,8 @@ void setup()
 
 #ifdef ARCH_ESP32
     // Don't init display if we don't have one or we are waking headless due to a timer event
-    if (wakeCause == ESP_SLEEP_WAKEUP_TIMER) {
+    if (wakeCause == ESP_SLEEP_WAKEUP_TIMER)
+    {
         LOG_DEBUG("suppress screen wake because this is a headless timer wakeup");
         i2cScanner->setSuppressScreen();
     }
@@ -483,8 +498,10 @@ void setup()
     auto screenInfo = i2cScanner->firstScreen();
     screen_found = screenInfo.type != ScanI2C::DeviceType::NONE ? screenInfo.address : ScanI2C::ADDRESS_NONE;
 
-    if (screen_found.port != ScanI2C::I2CPort::NO_I2C) {
-        switch (screenInfo.type) {
+    if (screen_found.port != ScanI2C::I2CPort::NO_I2C)
+    {
+        switch (screenInfo.type)
+        {
         case ScanI2C::DeviceType::SCREEN_SH1106:
             screen_model = meshtastic_Config_DisplayConfig_OledType::meshtastic_Config_DisplayConfig_OledType_OLED_SH1106;
             break;
@@ -535,11 +552,11 @@ void setup()
 
     pmu_found = i2cScanner->exists(ScanI2C::DeviceType::PMU_AXP192_AXP2101);
 
-/*
- * There are a bunch of sensors that have no further logic than to be found and stuffed into the
- * nodeTelemetrySensorsMap singleton. This wraps that logic in a temporary scope to declare the temporary field
- * "found".
- */
+    /*
+     * There are a bunch of sensors that have no further logic than to be found and stuffed into the
+     * nodeTelemetrySensorsMap singleton. This wraps that logic in a temporary scope to declare the temporary field
+     * "found".
+     */
 
 // Only one supported RGB LED currently
 #ifdef HAS_NCP5623
@@ -566,6 +583,10 @@ void setup()
     accelerometer_found = acc_info.type != ScanI2C::DeviceType::NONE ? acc_info.address : accelerometer_found;
     LOG_DEBUG("acc_info = %i", acc_info.type);
 #endif
+
+    auto mag_info = i2cScanner->firstMagnotometer();
+    magnotometer_found = mag_info.type != ScanI2C::DeviceType::NONE ? mag_info.address : magnotometer_found;
+    LOG_DEBUG("mag_info = %i\n", mag_info.type);
 
     scannerToSensorsMap(i2cScanner, ScanI2C::DeviceType::BME_680, meshtastic_TelemetrySensorType_BME680);
     scannerToSensorsMap(i2cScanner, ScanI2C::DeviceType::BME_280, meshtastic_TelemetrySensorType_BME280);
@@ -716,7 +737,6 @@ void setup()
     SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
     LOG_DEBUG("SPI.begin(SCK=%d, MISO=%d, MOSI=%d, NSS=%d)", LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
     SPI.setFrequency(4000000);
-#endif
 
     // Initialize the screen first so we can show the logo while we start up everything else.
     screen = new graphics::Screen(screen_found, screen_model, screen_geometry);
@@ -1136,7 +1156,7 @@ void setup()
 
 #if defined(ARCH_ESP32) && !MESHTASTIC_EXCLUDE_WEBSERVER
     // Start web server thread.
-    webServerThread = new WebServerThread();
+    // webServerThread = new WebServerThread();
 #endif
 
 #ifdef ARCH_PORTDUINO
@@ -1153,7 +1173,8 @@ void setup()
 
     if (!rIf)
         RECORD_CRITICALERROR(meshtastic_CriticalErrorCode_NO_RADIO);
-    else {
+    else
+    {
         router->addInterface(rIf);
 
         // Log bit rate to debug output
@@ -1239,9 +1260,6 @@ void loop()
 
 #ifdef ARCH_ESP32
     esp32Loop();
-#endif
-#ifdef ARCH_NRF52
-    nrf52Loop();
 #endif
     powerCommandsCheck();
 

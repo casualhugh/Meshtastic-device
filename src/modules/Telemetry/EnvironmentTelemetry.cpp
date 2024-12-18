@@ -189,13 +189,13 @@ bool EnvironmentTelemetryModule::wantUIFrame()
 
 void EnvironmentTelemetryModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->setFont(FONT_SMALL);
-
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->setFont(FONT_MEDIUM);
+    display->drawString(x + display->getWidth() / 2, y + FONT_HEIGHT_MEDIUM * 2, "Environment");
     if (lastMeasurementPacket == nullptr) {
-        // If there's no valid packet, display "Environment"
-        display->drawString(x, y, "Environment");
-        display->drawString(x, y += _fontHeight(FONT_SMALL), "No measurement");
+        display->setFont(FONT_SMALL);
+        display->drawString(x, y += fontHeight(FONT_MEDIUM), "No measurement");
+        display->drawString(x + display->getWidth() / 2, y + FONT_HEIGHT_MEDIUM * 4, "No measurement");
         return;
     }
 

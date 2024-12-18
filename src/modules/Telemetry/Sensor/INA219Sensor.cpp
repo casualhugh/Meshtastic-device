@@ -11,7 +11,10 @@
 #define INA219_MULTIPLIER 1.0f
 #endif
 
-INA219Sensor::INA219Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_INA219, "INA219") {}
+INA219Sensor::INA219Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_INA219, "INA219") {
+
+    ina226 = INA226_WE(0x40);
+}
 
 int32_t INA219Sensor::runOnce()
 {
@@ -19,30 +22,38 @@ int32_t INA219Sensor::runOnce()
     if (!hasSensor()) {
         return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
-    if (!ina219.success()) {
-        ina219 = Adafruit_INA219(nodeTelemetrySensorsMap[sensorType].first);
-        status = ina219.begin(nodeTelemetrySensorsMap[sensorType].second);
+    if (!ina226.init()) {
+        ina226 = INA226_WE(0x40);
+        status = ina226.init();
     } else {
-        status = ina219.success();
+        status = ina226.init();
     }
     return initI2CSensor();
 }
 
-void INA219Sensor::setup() {}
+void INA219Sensor::setup() {
+    ina226.setMeasureMode(TRIGGERED);
+}
 
 bool INA219Sensor::getMetrics(meshtastic_Telemetry *measurement)
 {
     measurement->variant.environment_metrics.has_voltage = true;
     measurement->variant.environment_metrics.has_current = true;
 
-    measurement->variant.environment_metrics.voltage = ina219.getBusVoltage_V();
-    measurement->variant.environment_metrics.current = ina219.getCurrent_mA() * INA219_MULTIPLIER;
+    ina226.startSingleMeasurement();
+    ina226.readAndClearFlags();
+    // float shuntVoltage_mV = ina226.getShuntVoltage_mV();
+    // float power_mW = ina226.getBusPower();
+    measurement->variant.environment_metrics.voltage = ina226.getBusVoltage_V();
+    measurement->variant.environment_metrics.current = ina226.getCurrent_mA();
     return true;
 }
 
 uint16_t INA219Sensor::getBusVoltageMv()
 {
-    return lround(ina219.getBusVoltage_V() * 1000);
+    ina226.startSingleMeasurement();
+    ina226.readAndClearFlags();
+    return lround(ina226.getBusVoltage_V() * 1000);
 }
 
 #endif
