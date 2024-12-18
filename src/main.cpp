@@ -161,6 +161,7 @@ static OSThread *buttonThread;
 uint32_t ButtonThread::longPressTime = 0;
 #endif
 static LSM303 *magnotometerThread;
+
 // static OSThread *ambientLightingThread;
 SPISettings spiSettings(4000000, MSBFIRST, SPI_MODE0);
 
@@ -496,7 +497,7 @@ void setup()
     // This must be _after_ service.init because we need our preferences loaded from flash to have proper timeout values
     PowerFSM_setup(); // we will transition to ON in a couple of seconds, FIXME, only do this for cold boots, not waking from SDS
     powerFSMthread = new PowerFSMThread();
-    setupOTA("WhereU1.1", mySSID, myPASSWORD);
+    // setupOTA("WhereU1.1", mySSID, myPASSWORD);
     setCPUFast(false); // 80MHz is fine for our slow peripherals
 }
 
@@ -558,7 +559,7 @@ void loop()
     /* if (mainController.nextThread && delayMsec)
         LOG_DEBUG("Next %s in %ld\n", mainController.nextThread->ThreadName.c_str(),
                   mainController.nextThread->tillRun(millis())); */
-    wifiRunOnce();
+    // wifiRunOnce();
     // We want to sleep as long as possible here - because it saves power
     if (!runASAP && loopCanSleep())
     {

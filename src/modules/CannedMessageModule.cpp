@@ -246,24 +246,24 @@ int32_t CannedMessageModule::runOnce()
     UIFrameEvent e = {false, true};
     if (this->runState == CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE) {
         // TODO: might have some feedback of sendig state
-        this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
+        // this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
         e.frameChanged = true;
-        this->currentMessageIndex = -1;
+        // this->currentMessageIndex = -1;
         this->freetext = ""; // clear freetext
         this->cursor = 0;
         this->destSelect = false;
         this->notifyObservers(&e);
-    } else if (((this->runState == CANNED_MESSAGE_RUN_STATE_ACTIVE) || (this->runState == CANNED_MESSAGE_RUN_STATE_FREETEXT)) &&
-               ((millis() - this->lastTouchMillis) > INACTIVATE_AFTER_MS)) {
-        // Reset module
-        LOG_DEBUG("Reset due to lack of activity.\n");
-        e.frameChanged = true;
-        this->currentMessageIndex = -1;
-        this->freetext = ""; // clear freetext
-        this->cursor = 0;
-        this->destSelect = false;
-        this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
-        this->notifyObservers(&e);
+    // } else if (((this->runState == CANNED_MESSAGE_RUN_STATE_ACTIVE) || (this->runState == CANNED_MESSAGE_RUN_STATE_FREETEXT)) &&
+    //            ((millis() - this->lastTouchMillis) > INACTIVATE_AFTER_MS)) {
+    //     // Reset module
+    //     LOG_DEBUG("Reset due to lack of activity.\n");
+    //     e.frameChanged = true;
+    //     this->currentMessageIndex = -1;
+    //     this->freetext = ""; // clear freetext
+    //     this->cursor = 0;
+    //     this->destSelect = false;
+    //     this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
+    //     this->notifyObservers(&e);
     } else if (this->runState == CANNED_MESSAGE_RUN_STATE_ACTION_SELECT) {
         if (this->payload == CANNED_MESSAGE_RUN_STATE_FREETEXT) {
             if (this->freetext.length() > 0) {
@@ -271,7 +271,7 @@ int32_t CannedMessageModule::runOnce()
                 this->runState = CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE;
             } else {
                 LOG_DEBUG("Reset message is empty.\n");
-                this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
+                // this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
             }
         } else {
             if ((this->messagesCount > this->currentMessageIndex) && (strlen(this->messages[this->currentMessageIndex]) > 0)) {
@@ -284,11 +284,11 @@ int32_t CannedMessageModule::runOnce()
                 this->runState = CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE;
             } else {
                 LOG_DEBUG("Reset message is empty.\n");
-                this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
+                // this->runState = CANNED_MESSAGE_RUN_STATE_INACTIVE;
             }
         }
         e.frameChanged = true;
-        this->currentMessageIndex = -1;
+        // this->currentMessageIndex = -1;
         this->freetext = ""; // clear freetext
         this->cursor = 0;
         this->destSelect = false;
@@ -458,6 +458,11 @@ bool CannedMessageModule::shouldDraw()
     if (!moduleConfig.canned_message.enabled && !CANNED_MESSAGE_MODULE_ENABLE) {
         return false;
     }
+    // Always enable the canned message screen
+    // if (this->runState == CANNED_MESSAGE_RUN_STATE_INACTIVE){
+    //     this->runState = CANNED_MESSAGE_RUN_STATE_ACTIVE;
+    // }
+
     return (currentMessageIndex != -1) || (this->runState != CANNED_MESSAGE_RUN_STATE_INACTIVE);
 }
 

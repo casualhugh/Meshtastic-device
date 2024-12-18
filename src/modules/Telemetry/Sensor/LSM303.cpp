@@ -47,11 +47,12 @@ void LSM303::enable(){
     enabled = true;
 }
 
-// void LSM303::disable(){
-//     // acc->Disable();
-//     mag->Disable();
-//     enabled = false;
-// }
+void LSM303::turn_off(){
+    disable();
+    // acc->Disable();
+    mag->Disable();
+    enabled = false;
+}
 void LSM303::recalculate_bias(){
   for (int i = 0; i < 3; i++){
     if (mins[i] < maxes[i]){
@@ -120,10 +121,6 @@ West = 270
 */
 float LSM303::getHeading()
 {
-    if (!enabled){
-      enable();
-      enabled = true;
-    }
     int32_t magnetometer[3];
     mag->GetAxes(magnetometer);
     count+= 1;

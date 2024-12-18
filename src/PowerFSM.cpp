@@ -64,6 +64,7 @@ static void lsEnter()
 {
     LOG_INFO("lsEnter begin, ls_secs=%u\n", config.power.ls_secs);
     screen->setOn(false);
+    
     secsSlept = 0; // How long have we been sleeping this time
 
     // LOG_INFO("lsEnter end\n");
@@ -142,6 +143,7 @@ static void nbEnter()
 {
     LOG_DEBUG("Enter state: NB\n");
     screen->setOn(false);
+    
 #ifdef ARCH_ESP32
     // Only ESP32 should turn off bluetooth
     setBluetoothEnable(false);
@@ -154,6 +156,7 @@ static void darkEnter()
 {
     setBluetoothEnable(true);
     screen->setOn(false);
+    
 }
 
 static void serialEnter()
@@ -161,6 +164,7 @@ static void serialEnter()
     LOG_DEBUG("Enter state: SERIAL\n");
     setBluetoothEnable(false);
     screen->setOn(true);
+    
     screen->print("Serial connected\n");
 }
 
@@ -181,6 +185,7 @@ static void powerEnter()
     } else {
         screen->setOn(true);
         setBluetoothEnable(true);
+        
         // within enter() the function getState() returns the state we came from
         if (strcmp(powerFSM.getState()->name, "BOOT") != 0 && strcmp(powerFSM.getState()->name, "POWER") != 0 &&
             strcmp(powerFSM.getState()->name, "DARK") != 0) {
@@ -202,6 +207,7 @@ static void powerExit()
 {
     screen->setOn(true);
     setBluetoothEnable(true);
+    
     if (!isPowered())
         screen->print("Unpowered...\n");
 }
@@ -211,6 +217,7 @@ static void onEnter()
     LOG_DEBUG("Enter state: ON\n");
     screen->setOn(true);
     setBluetoothEnable(true);
+    
 }
 
 static void onIdle()

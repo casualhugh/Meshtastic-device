@@ -46,7 +46,21 @@ class LSM303 : public concurrency::OSThread
     int32_t runOnce() override
     {
         canSleep = true; // Assume we should not keep the board awake
-        publishUpdate(getHeading());
+        
+        if (powerFSM.getState() != &stateDARK && !enabled){
+          LOG_DEBUG("MagnotometerThread enabling the sensor\n");
+          enable();
+          enabled = true;
+
+        } else if (powerFSM.getState() == &stateDARK && enabled){
+          LOG_DEBUG("MagnotometerThread disabling the sensor due to being dark\n");
+          turn_off();
+        }
+        if (enabled) {
+          publishUpdate(getHeading());
+        }
+
+
         return MAG_CHECK_INTERVAL_MS;
     }
     ScanI2C::DeviceType mag_type;
@@ -61,7 +75,14 @@ class LSM303 : public concurrency::OSThread
     void init();
     bool isEnabled();
     void enable();
-    // void disable();
+    void turn_off();
+    void setOn(bool on){
+      if (on){
+        enable();
+      } else {
+        turn_off();
+      }
+    }
     float getHeading();
     int32_t maxes[3] = {
       -2147483647,

@@ -68,7 +68,7 @@ namespace concurrency
 #endif
             userButtonAlt.attachClick(userButtonAltPressed);
             userButtonAlt.attachDuringLongPress(userButtonPressedLong);
-            userButtonAlt.attachDoubleClick(userButtonDoublePressed);
+            userButtonAlt.attachDoubleClick(userButtonDoublePressedAlt);
             userButtonAlt.attachLongPressStart(userButtonPressedLongStart);
             userButtonAlt.attachLongPressStop(userButtonPressedLongStop);
             wakeOnIrq(BUTTON_PIN_ALT, FALLING);
@@ -165,6 +165,18 @@ namespace concurrency
 
         static void userButtonDoublePressed()
         {
+            // UpDownInterruptImpl1::handleIntUp();
+#if defined(USE_EINK) && defined(PIN_EINK_EN)
+            digitalWrite(PIN_EINK_EN, digitalRead(PIN_EINK_EN) == LOW);
+#endif
+            screen->print("Sent ad-hoc ping\n");
+            service.refreshLocalMeshNode();
+            service.sendNetworkPing(NODENUM_BROADCAST, true);
+        }
+
+        static void userButtonDoublePressedAlt()
+        {
+            // UpDownInterruptImpl1::handleIntDown();
 #if defined(USE_EINK) && defined(PIN_EINK_EN)
             digitalWrite(PIN_EINK_EN, digitalRead(PIN_EINK_EN) == LOW);
 #endif
