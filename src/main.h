@@ -3,6 +3,7 @@
 #include "GPSStatus.h"
 #include "NodeStatus.h"
 #include "PowerStatus.h"
+#include "MagnotometerStatus.h"
 #include "detect/ScanI2C.h"
 #include "graphics/Screen.h"
 #include "memGet.h"

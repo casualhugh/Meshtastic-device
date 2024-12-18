@@ -134,6 +134,9 @@ meshtastic::GPSStatus *gpsStatus = new meshtastic::GPSStatus();
 // Global Node status
 meshtastic::NodeStatus *nodeStatus = new meshtastic::NodeStatus();
 
+// Global Magnotometer status
+meshtastic::MagnotometerStatus * magnotometerStatus = new meshtastic::MagnotometerStatus();
+
 // Scan for I2C Devices
 
 /// The I2C address of our display (if found)
@@ -685,6 +688,14 @@ void setup()
         accelerometerThread = new AccelerometerThread(acc_info.type);
     }
     magnotometerThread  = new MagnotometerThread();
+     if (magnotometerThread)
+    {
+        magnotometerStatus->observe(&magnotometerThread->newStatus);
+    }
+    else
+    {
+        LOG_DEBUG("Running without Magnotometer.\n");
+    }
 #endif
 
 #if defined(HAS_NEOPIXEL) || defined(UNPHONE) || defined(RGBLED_RED)
