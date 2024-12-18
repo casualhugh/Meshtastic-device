@@ -32,10 +32,9 @@
   "connectivity": ["bluetooth"],
   "debug": {
     "jlink_device": "nRF52840_xxAA",
-    "svd_path": "nrf52840.svd",
-    "openocd_target": "nrf52840-mdk-rs"
+    "svd_path": "nrf52840.svd"
   },
-  "frameworks": ["arduino", "freertos"],
+  "frameworks": ["arduino"],
   "name": "WisCore RAK4631 Board",
   "upload": {
     "maximum_ram_size": 248832,

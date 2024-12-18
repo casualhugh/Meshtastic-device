@@ -1,7 +1,7 @@
 #include "InputBroker.h"
 #include "PowerFSM.h" // needed for event trigger
 
-InputBroker *inputBroker = nullptr;
+InputBroker *inputBroker;
 
 InputBroker::InputBroker(){};
 

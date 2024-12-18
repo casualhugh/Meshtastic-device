@@ -9,7 +9,6 @@
     "f_cpu": "64000000L",
     "hwids": [
       ["0x239A", "0x4405"],
-      ["0x239A", "0x0029"],
       ["0x239A", "0x002A"]
     ],
     "usb_product": "TTGO_eink",
@@ -33,8 +32,7 @@
   "debug": {
     "jlink_device": "nRF52840_xxAA",
     "onboard_tools": ["jlink"],
-    "svd_path": "nrf52840.svd",
-    "openocd_target": "nrf52840-mdk-rs"
+    "svd_path": "nrf52840.svd"
   },
   "frameworks": ["arduino"],
   "name": "TTGO eink (Adafruit BSP)",

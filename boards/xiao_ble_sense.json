@@ -31,8 +31,7 @@
   "connectivity": ["bluetooth"],
   "debug": {
     "jlink_device": "nRF52840_xxAA",
-    "svd_path": "nrf52840.svd",
-    "openocd_target": "nrf52840-mdk-rs"
+    "svd_path": "nrf52840.svd"
   },
   "frameworks": ["arduino"],
   "name": "Seeed Xiao BLE Sense",

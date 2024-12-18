@@ -1,41 +1,65 @@
 Components
     New LDO
-        - Does it power on and can it be used?
+        - YES Does it power on and can it be used? YES
     New USB
-        - As above
-        - Test charging works
+        - YES As above 
+        - YES Test charging works 
+    
     Buttons switched to pulled up
-        - Test buttons work
+        - YES Test buttons work YES
     Wifi
-        - Get it connected with the wifi for uploading code remotely
+        - YES Get it connected with the wifi for uploading code remotely YES
     
     Lora SX1262 (as opposed to previous sx1276)
-        - Connected and sending basic packet
-        - Integrate with meshtastic
+        - YES Connected and sending basic packet YES
+        - YESIntegrate with meshtastic 
     New gps with ipex connector
-        - Connected with tiny library
-        - Integrate with meshtastic
+        - YES Connected with tiny library YES
+        - YES Integrate with meshtastic
+    
     LSM303AGRTR - Accelerometer and Mag
-        - Connected with library 
-        - Rewrite library from before (with mag angle)
-        - Wake on Accelerometer?
+        - YES Connected with library  YES
+        - YES Rewrite library from before (with mag angle)
+        - NO Wake on Accelerometer?
 
-    INA231AIYFFR (Battery reader i2c) 0x40?
-        - Get reading voltage
-        - Get reading power usage
-        - Write measurer for pinging it
-        - Test usage with different Components
-        - Test charging rate?
-        - integrate with Meshtastic + battery icon
+    INA231AIYFFR (Battery reader i2c) 0x44?
+        - YES Get reading voltage YES
+        - YES Get reading power usage Library does this
+        - YES Write measurer for pinging it Yes
+        - TODO Test usage with different Components
+        - TODDO Test charging rate?
+        - YES integrate with Meshtastic + battery icon
 
     New screen connection / SPI pins
-        - Display something using the library as before
+        - YES Display something using the new library thats included
         - Test out colour and buffer?
     New screen Load mosfets
-        - As above test it can be powered on etc
-    Touch i2c 0x15?
+        - YES As above test it can be powered on etc
+    Touch i2c 0x15? Cri didnt connect vcc
         - Get gestures working
         - get the interrupt working
+
+Code todos
+    Mag sensor addition (replacing estimation for heading) 
+        DONE- Initialisation needs testing
+        DONE- Piping to the screen is not done (Does screen request it or does mag push it?)
+        DONE- May need to create a observer type thing like gps
+        DONE- Need to impliment the angle calc and hard iron correction
+
+    Acc sensor switch out
+        - Needs testing
+        - Doesnt do anything yet
+    battery read switch out
+        - YES  Loads as the INA226 which has same registers just needs testings
+        - YES  Looks like theres a config for the address might need to set that on phone?
+        - YES for now added a case for 0x40
+    Wifi remote uploading
+    Touch Gesture support?
+        - SAD NEED POWER FOR TOUCH DRIVER
+    
+
+    Change buttons to allow for seleting canned messages?
+        
 
 pins
     Buttons
@@ -49,12 +73,15 @@ pins
         MISO - 19
         SCK - 7
         SXSS(Chip select) - 5
-
+        BUSY - NC (May cause issues)
     gps
         TX2 - 20
         RX2 - 4
         FORCEON - 13
-
+        #include <HardwareSerial.h>
+        HardwareSerial sp(1)
+        sp.begin(9600, SERIAL_8N1, RXPin-20, TXPin=4);
+        (Software serial doesnt work)
     screen
         LCDRST - 2
         LCDCS - 15

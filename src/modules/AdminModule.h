@@ -1,15 +1,13 @@
-#include <sys/types.h>
-
 #pragma once
 #include "ProtobufModule.h"
-#if HAS_WIFI
-#include "mesh/wifi/WiFiAPClient.h"
+#ifdef ARCH_ESP32
+#include "mesh/http/WiFiAPClient.h"
 #endif
 
 /**
  * Admin module for admin messages
  */
-class AdminModule : public ProtobufModule<meshtastic_AdminMessage>, public Observable<const meshtastic_AdminMessage *>
+class AdminModule : public ProtobufModule<meshtastic_AdminMessage>
 {
   public:
     /** Constructor
@@ -26,9 +24,6 @@ class AdminModule : public ProtobufModule<meshtastic_AdminMessage>, public Obser
 
   private:
     bool hasOpenEditTransaction = false;
-
-    uint8_t session_passkey[8] = {0};
-    uint session_time = 0;
 
     void saveChanges(int saveWhat, bool shouldReboot = true);
 
@@ -53,15 +48,6 @@ class AdminModule : public ProtobufModule<meshtastic_AdminMessage>, public Obser
     void handleSetChannel();
     void handleSetHamMode(const meshtastic_HamParameters &req);
     void reboot(int32_t seconds);
-
-    void setPassKey(meshtastic_AdminMessage *res);
-    bool checkPassKey(meshtastic_AdminMessage *res);
-
-    bool messageIsResponse(const meshtastic_AdminMessage *r);
-    bool messageIsRequest(const meshtastic_AdminMessage *r);
-    void sendWarning(const char *message);
 };
 
 extern AdminModule *adminModule;
-
-void disableBluetooth();

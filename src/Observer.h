@@ -10,12 +10,12 @@ template <class T> class Observable;
  */
 template <class T> class Observer
 {
-    std::list<Observable<T> *> observables;
+    std::list<Observable<T> *> observed;
 
   public:
     virtual ~Observer();
 
-    /// Stop watching the observable
+    /// Stop watching the obserable
     void unobserve(Observable<T> *o);
 
     /// Start watching a specified observable
@@ -86,21 +86,21 @@ template <class T> class Observable
 
 template <class T> Observer<T>::~Observer()
 {
-    for (typename std::list<Observable<T> *>::const_iterator iterator = observables.begin(); iterator != observables.end();
+    for (typename std::list<Observable<T> *>::const_iterator iterator = observed.begin(); iterator != observed.end();
          ++iterator) {
         (*iterator)->removeObserver(this);
     }
-    observables.clear();
+    observed.clear();
 }
 
 template <class T> void Observer<T>::unobserve(Observable<T> *o)
 {
     o->removeObserver(this);
-    observables.remove(o);
+    observed.remove(o);
 }
 
 template <class T> void Observer<T>::observe(Observable<T> *o)
 {
-    observables.push_back(o);
+    observed.push_back(o);
     o->addObserver(this);
 }

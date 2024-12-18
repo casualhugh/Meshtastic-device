@@ -1,7 +1,3 @@
-#include "configuration.h"
-
-#if HAS_TELEMETRY && !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR
-
 #include "../mesh/generated/meshtastic/telemetry.pb.h"
 #include "TelemetrySensor.h"
 #include "VoltageSensor.h"
@@ -21,5 +17,3 @@ class INA260Sensor : public TelemetrySensor, VoltageSensor
     virtual bool getMetrics(meshtastic_Telemetry *measurement) override;
     virtual uint16_t getBusVoltageMv() override;
 };
-
-#endif
