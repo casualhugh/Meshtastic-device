@@ -33,7 +33,8 @@
 // WaveShare Core1262-868M OK
 // https://www.waveshare.com/wiki/Core1262-868M
 #define USE_SX1262
-
+#define BATTERY_PIN -1
+#define ADC_CHANNEL ADC1_GPIO34_CHANNEL
 #ifdef USE_SX1262
 #define LORA_DIO1 22
 #define LORA_BUSY 47

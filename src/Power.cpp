@@ -448,6 +448,7 @@ class AnalogBatteryLevel : public HasBatteryLevel
 #if HAS_TELEMETRY && !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && !defined(ARCH_PORTDUINO) && !defined(ARCH_STM32WL)
     uint16_t getINAVoltage()
     {
+        return ina219Sensor.getBusVoltageMv();
         if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA219].first == config.power.device_battery_ina_address) {
             return ina219Sensor.getBusVoltageMv();
         } else if (nodeTelemetrySensorsMap[meshtastic_TelemetrySensorType_INA260].first ==
@@ -462,6 +463,10 @@ class AnalogBatteryLevel : public HasBatteryLevel
 
     bool hasINA()
     {
+        if (!ina219Sensor.isInitialized())
+            return ina219Sensor.runOnce() > 0;
+        return ina219Sensor.isRunning();
+        
         if (!config.power.device_battery_ina_address) {
             return false;
         }
