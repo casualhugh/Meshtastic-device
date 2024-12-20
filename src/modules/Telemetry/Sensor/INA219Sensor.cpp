@@ -18,15 +18,10 @@ INA219Sensor::INA219Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_IN
 int32_t INA219Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    if (!hasSensor()) {
-        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
-    }
-    if (!ina226.init()) {
-        ina226 = INA226_WE(0x40);
-        status = ina226.init();
-    } else {
-        status = ina226.init();
-    }
+    // if (!hasSensor()) {
+    //     return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    // }
+    status = ina226.init();
     return initI2CSensor();
 }
 
