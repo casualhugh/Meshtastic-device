@@ -1177,6 +1177,9 @@ GnssModel_t GPS::probe(int serialSpeed)
     _serial_gps->write("$PAIR062,2,0*3C\r\n"); // GSA OFF to reduce volume
     _serial_gps->write("$PAIR062,3,0*3D\r\n"); // GSV OFF to reduce volume
     _serial_gps->write("$PAIR513*3D\r\n");     // save configuration
+    // Added a probe for the L76L which is just the newer version of the L76B
+    PROBE_SIMPLE("L76L", "$PMTK605*31", "Quectel-L76L", GNSS_MODEL_MTK_L76B, 500);
+    
     PROBE_SIMPLE("AG3335", "$PAIR021*39", "$PAIR021,AG3335", GNSS_MODEL_AG3335, 500);
     PROBE_SIMPLE("AG3352", "$PAIR021*39", "$PAIR021,AG3352", GNSS_MODEL_AG3352, 500);
     PROBE_SIMPLE("LC86", "$PQTMVERNO*58", "$PQTMVERNO,LC86", GNSS_MODEL_AG3352, 500);
@@ -1447,6 +1450,7 @@ bool GPS::factoryReset()
         delay(100);
     } else {
         // fire this for good measure, if we have an L76B - won't harm other devices.
+        // Cold reset on L76
         _serial_gps->write("$PMTK104*37\r\n");
         // No PMTK_ACK for this command.
         delay(100);
