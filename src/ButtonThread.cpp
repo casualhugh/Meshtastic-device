@@ -240,6 +240,103 @@ int32_t ButtonThread::runOnce()
         btnEvent = BUTTON_EVENT_NONE;
     }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//     if (altBtnEvent != BUTTON_EVENT_NONE) {
+//         switch (altBtnEvent) {
+//         case BUTTON_EVENT_PRESSED: {
+//             LOG_BUTTON("press!");
+//             // If a nag notification is running, stop it and prevent other actions
+//             if (moduleConfig.external_notification.enabled && (externalNotificationModule->nagCycleCutoff != UINT32_MAX)) {
+//                 externalNotificationModule->stopNow();
+//                 return 50;
+//             }
+// #ifdef BUTTON_PIN_ALT
+// #if !defined(USERPREFS_BUTTON_PIN)
+//             if (((config.device.button_gpio ? config.device.button_gpio : BUTTON_PIN) !=
+// #endif
+//                  moduleConfig.canned_message.inputbroker_pin_press) ||
+//                 !(moduleConfig.canned_message.updown1_enabled || moduleConfig.canned_message.rotary1_enabled) ||
+//                 !moduleConfig.canned_message.enabled) {
+//                 powerFSM.trigger(EVENT_PRESS_ALT);
+//             }
+// #endif
+// #if defined(ARCH_PORTDUINO)
+//             if ((settingsMap.count(user) != 0 && settingsMap[user] != RADIOLIB_NC) &&
+//                     (settingsMap[user] != moduleConfig.canned_message.inputbroker_pin_press) ||
+//                 !moduleConfig.canned_message.enabled) {
+//                 powerFSM.trigger(EVENT_PRESS);
+//             }
+// #endif
+//             break;
+//         }
+
+//         case BUTTON_EVENT_DOUBLE_PRESSED: {
+//             LOG_BUTTON("Double press!");
+//             service->refreshLocalMeshNode();
+//             auto sentPosition = service->trySendPosition(NODENUM_BROADCAST, true);
+//             if (screen) {
+//                 if (sentPosition)
+//                     screen->print("Sent ad-hoc position\n");
+//                 else
+//                     screen->print("Sent ad-hoc nodeinfo\n");
+//                 screen->forceDisplay(true); // Force a new UI frame, then force an EInk update
+//             }
+//             break;
+//         }
+
+//         case BUTTON_EVENT_MULTI_PRESSED: {
+//             LOG_BUTTON("Mulitipress! %hux", multipressClickCount);
+//             switch (multipressClickCount) {
+// #if HAS_GPS
+//             // 3 clicks: toggle GPS
+//             case 3:
+//                 if (!config.device.disable_triple_click && (gps != nullptr)) {
+//                     gps->toggleGpsMode();
+//                     if (screen)
+//                         screen->forceDisplay(true); // Force a new UI frame, then force an EInk update
+//                 }
+//                 break;
+// #endif
+// #if defined(USE_EINK) && defined(PIN_EINK_EN) // i.e. T-Echo
+//             // 4 clicks: toggle backlight
+//             case 4:
+//                 digitalWrite(PIN_EINK_EN, digitalRead(PIN_EINK_EN) == LOW);
+//                 break;
+// #endif
+//             // No valid multipress action
+//             default:
+//                 break;
+//             } // end switch: click count
+
+//             break;
+//         } // end multipress event
+
+//         case BUTTON_EVENT_LONG_PRESSED: {
+//             LOG_BUTTON("Long press!");
+//             powerFSM.trigger(EVENT_PRESS);
+//             if (screen) {
+//                 screen->startAlert("Shutting down...");
+//             }
+//             playBeep();
+//             break;
+//         }
+
+//         // Do actual shutdown when button released, otherwise the button release
+//         // may wake the board immediatedly.
+//         case BUTTON_EVENT_LONG_RELEASED: {
+//             LOG_INFO("Shutdown from long press");
+//             playShutdownMelody();
+//             delay(3000);
+//             power->shutdown();
+//             break;
+//         }
+//         default:
+//             break;
+//         }
+//         altBtnEvent = BUTTON_EVENT_NONE;
+//     }
+
     return 50;
 }
 

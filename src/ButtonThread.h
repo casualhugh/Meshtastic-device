@@ -50,7 +50,7 @@ class ButtonThread : public concurrency::OSThread
 
     // set during IRQ
     static volatile ButtonEventType btnEvent;
-
+    // static volatile ButtonEventType altBtnEvent;
     // Store click count during callback, for later use
     volatile int multipressClickCount = 0;
 
@@ -63,6 +63,13 @@ class ButtonThread : public concurrency::OSThread
     static void userButtonPressedLongStart();
     static void userButtonPressedLongStop();
     static void touchPressedLongStart() { btnEvent = BUTTON_EVENT_TOUCH_LONG_PRESSED; }
+
+    // static void userButtonAltPressed() { altBtnEvent = BUTTON_EVENT_PRESSED; }
+    // static void userButtonAltPressedAlt() { altBtnEvent = BUTTON_EVENT_PRESSED; }
+    // static void userButtonAltDoublePressed() { altBtnEvent = BUTTON_EVENT_DOUBLE_PRESSED; }
+    // static void userButtonAltMultiPressed(void *callerThread); // Retrieve click count from non-static Onebutton while still valid
+    // static void userButtonAltPressedLongStart();
+    // static void userButtonAltPressedLongStop();
 };
 
 extern ButtonThread *buttonThread;

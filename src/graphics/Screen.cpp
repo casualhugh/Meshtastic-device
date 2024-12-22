@@ -122,7 +122,13 @@ static bool heartbeat = false;
 #include <Throttle.h>
 
 #define getStringCenteredX(s) ((SCREEN_WIDTH - display->getStringWidth(s)) / 2)
+#define CENTER SCREEN_WIDTH / 2
+#define rightMostX(y) ( CENTER + static_cast<int>( std::sqrt(CENTER * CENTER - (y - CENTER) * (y - CENTER))))
+#define leftMostX(y) ( CENTER - static_cast<int>( std::sqrt(CENTER * CENTER - (y - CENTER) * (y - CENTER))))
 
+#define sLINE(num) (FONT_HEIGHT_SMALL * num)
+#define mLINE(num) (FONT_HEIGHT_MEDIUM * num)
+#define lLINE(num) (FONT_HEIGHT_LARGE * num)
 /// Check if the display can render a string (detect special chars; emoji)
 static bool haveGlyphs(const char *str)
 {
@@ -157,40 +163,37 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
     // needs to be drawn relative to x and y
 
     // draw centered icon left to right and centered above the one line of app text
-    display->drawXbm(x + (SCREEN_WIDTH - icon_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - icon_height) / 2 + 2,
+    display->drawXbm(x + (SCREEN_WIDTH - icon_width) / 2, y + (SCREEN_HEIGHT - icon_height) / 2,
                      icon_width, icon_height, icon_bits);
 
     display->setFont(FONT_MEDIUM);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 #ifdef USERPREFS_SPLASH_TITLE
     const char *title = USERPREFS_SPLASH_TITLE;
 #else
     const char *title = "meshtastic.org";
 #endif
-    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, title);
+    display->drawString(x + CENTER, y + FONT_HEIGHT_MEDIUM * 4, title);
     display->setFont(FONT_SMALL);
-
-    // Draw region in upper left
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    // Draw region in upper CENTER
     if (upperMsg)
-        display->drawString(x + 0, y + 0, upperMsg);
+        display->drawString(x + CENTER, y + mLINE(1), upperMsg);
 
     // Draw version and short name in upper right
     char buf[25];
-    snprintf(buf, sizeof(buf), "%s\n%s", xstr(APP_VERSION_SHORT), haveGlyphs(owner.short_name) ? owner.short_name : "");
-
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->drawString(x + SCREEN_WIDTH, y + 0, buf);
+    snprintf(buf, sizeof(buf), "%s", xstr(APP_VERSION_SHORT));
+    display->drawString(x + CENTER, y + SCREEN_HEIGHT - mLINE(1), buf);
+    snprintf(buf, sizeof(buf), "%s", haveGlyphs(owner.short_name) ? owner.short_name : "");
+    display->drawString(x + CENTER, y + SCREEN_HEIGHT - mLINE(3), buf);
     screen->forceDisplay();
-
-    display->setTextAlignment(TEXT_ALIGN_LEFT); // Restore left align, just to be kind to any other unsuspecting code
 }
 
 void Screen::drawFrameText(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y, const char *message)
 {
-    uint16_t x_offset = display->width() / 2;
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(x_offset + x, 26 + y, message);
+    display->drawString(x + CENTER, y + CENTER, message);
 }
 
 // Used on boot when a certificate is being created
@@ -198,7 +201,9 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->drawString(64 + x, y, "Creating SSL certificate");
+    display->drawString(x + CENTER, y + CENTER - sLINE(1), "Creating SSL certificate");
+    // Bold
+    display->drawString(x + CENTER + 1, y + CENTER - sLINE(1), "Creating SSL certificate");
 
 #ifdef ARCH_ESP32
     yield();
@@ -207,29 +212,30 @@ static void drawSSLScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 
     display->setFont(FONT_SMALL);
     if ((millis() / 1000) % 2) {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . . .");
+        display->drawString(x + CENTER, y + CENTER + sLINE(1), "Please wait . . .");
     } else {
-        display->drawString(64 + x, FONT_HEIGHT_SMALL + y + 2, "Please wait . .  ");
+        display->drawString(x + CENTER, y + CENTER + sLINE(1), "Please wait . .  ");
     }
 }
 
 // Used when booting without a region set
 static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setFont(FONT_SMALL);
+    display->setFont(FONT_MEDIUM);
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->drawString(64 + x, y, "//\\ E S H T /\\ S T / C");
-    display->drawString(64 + x, y + FONT_HEIGHT_SMALL, getDeviceName());
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->drawString(x + CENTER, y + mLINE(2), "\\// H E R E   U");
+    display->drawString(x + CENTER + 1, y + mLINE(2), "\\// H E R E   U");
+    display->setFont(FONT_SMALL);
+    display->drawString(x + CENTER, y + mLINE(3), getDeviceName());
+    display->drawString(x + CENTER + 1, y + mLINE(3), getDeviceName());
 
     if ((millis() / 10000) % 2) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Set the region using the");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "Meshtastic Android, iOS,");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "Web or CLI clients.");
+        display->drawString(x + CENTER, y + CENTER + sLINE(1), "Set the region using the");
+        display->drawString(x + CENTER, y + CENTER + sLINE(2), "Meshtastic Android, iOS,");
+        display->drawString(x + CENTER, y + CENTER + sLINE(3), "Web or CLI clients.");
     } else {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 2 - 3, "Visit meshtastic.org");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 3 - 3, "for more information.");
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 4 - 3, "");
+        display->drawString(x + CENTER, y + CENTER + sLINE(1), "Visit meshtastic.org");
+        display->drawString(x + CENTER, y + CENTER + sLINE(2), "for more information.");
     }
 
 #ifdef ARCH_ESP32
@@ -238,15 +244,16 @@ static void drawWelcomeScreen(OLEDDisplay *display, OLEDDisplayUiState *state, i
 #endif
 }
 
-// draw overlay in bottom right corner of screen to show when notifications are muted or modifier key is active
+// draw overlay in bottom center of screen to show when notifications are muted or modifier key is active
 static void drawFunctionOverlay(OLEDDisplay *display, OLEDDisplayUiState *state)
 {
     // LOG_DEBUG("Draw function overlay");
     if (functionSymbol.begin() != functionSymbol.end()) {
         char buf[64];
         display->setFont(FONT_SMALL);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
         snprintf(buf, sizeof(buf), "%s", functionSymbolString.c_str());
-        display->drawString(SCREEN_WIDTH - display->getStringWidth(buf), SCREEN_HEIGHT - FONT_HEIGHT_SMALL, buf);
+        display->drawString(CENTER, SCREEN_HEIGHT - FONT_HEIGHT_SMALL, buf);
     }
 }
 
@@ -274,7 +281,7 @@ static void drawScreensaverOverlay(OLEDDisplay *display, OLEDDisplayUiState *sta
 
     // Config
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     const char *pauseText = "Screen Paused";
     const char *idText = owner.short_name;
     const bool useId = haveGlyphs(idText); // This bool is used to hide the idText box if we can't render the short name
@@ -289,7 +296,7 @@ static void drawScreensaverOverlay(OLEDDisplay *display, OLEDDisplayUiState *sta
     const uint16_t boxHeight = padding + FONT_HEIGHT_SMALL + padding;
 
     // Position
-    const int16_t boxLeft = (display->width() / 2) - (boxWidth / 2) + random(-imprecision, imprecision + 1);
+    const int16_t boxLeft = (CENTER) - (boxWidth / 2) + random(-imprecision, imprecision + 1);
     // const int16_t boxRight = boxLeft + boxWidth - 1;
     const int16_t boxTop = (display->height() / 2) - (boxHeight / 2 + random(-imprecision, imprecision + 1));
     const int16_t boxBottom = boxTop + boxHeight - 1;
@@ -345,26 +352,27 @@ static void drawFrameFirmware(OLEDDisplay *display, OLEDDisplayUiState *state, i
 {
     display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-    display->drawString(64 + x, y, "Updating");
-
+    display->drawString(x + CENTER, y + CENTER - mLINE(1), "Updating");
+    display->drawString(x + CENTER + 1, y + CENTER - mLINE(1), "Updating");
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->drawStringMaxWidth(0 + x, 2 + y + FONT_HEIGHT_SMALL * 2, x + display->getWidth(),
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->drawStringMaxWidth(x + CENTER, y + CENTER + mLINE(1), x + display->getWidth(),
                                 "Please be patient and do not power off.");
 }
 
 /// Draw the last text message we received
 static void drawCriticalFaultFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_MEDIUM);
-
+    display->drawString(x + CENTER, y + CENTER - mLINE(1), "Critical fault");
+    display->drawString(x + CENTER + 1, y + CENTER - mLINE(1), "Critical fault");
     char tempBuf[24];
-    snprintf(tempBuf, sizeof(tempBuf), "Critical fault #%d", error_code);
-    display->drawString(0 + x, 0 + y, tempBuf);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    snprintf(tempBuf, sizeof(tempBuf), "#%d", error_code);
+    display->drawString(x + CENTER, y + CENTER + mLINE(1), tempBuf);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->drawString(0 + x, FONT_HEIGHT_MEDIUM + y, "For help, please visit \nmeshtastic.org");
+    display->drawString(x + CENTER, y + CENTER + mLINE(3), "For help, please visit \nmeshtastic.org");
 }
 
 // Ignore messages originating from phone (from the current node 0x0) unless range test or store and forward module are enabled
@@ -392,7 +400,7 @@ static void drawBattery(OLEDDisplay *display, int16_t x, int16_t y, uint8_t *img
                 memcpy(imgBuffer + 1 + (i * 3), powerBar, 3);
         }
     }
-    display->drawFastImage(x, y, 16, 8, imgBuffer);
+    display->drawFastImage(x - 8, y + 4, 16, 8, imgBuffer);
 }
 
 #if defined(DISPLAY_CLOCK_FRAME)
@@ -434,7 +442,7 @@ void Screen::drawWatchFaceToggleButton(OLEDDisplay *display, int16_t x, int16_t 
 // Draw a digital clock
 void Screen::drawDigitalClockFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     drawBattery(display, x, y + 7, imgBattery, powerStatus);
 
@@ -666,7 +674,7 @@ void Screen::drawBluetoothConnectedIcon(OLEDDisplay *display, int16_t x, int16_t
 // Draw an analog clock
 void Screen::drawAnalogClockFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     drawBattery(display, x, y + 7, imgBattery, powerStatus);
 
@@ -917,13 +925,8 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     // Demo for drawStringMaxWidth:
     // with the third parameter you can define the width after which words will
     // be wrapped. Currently only spaces and "-" are allowed for wrapping
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
-        display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
-        display->setColor(BLACK);
-    }
-
     // For time delta
     uint32_t seconds = sinceReceived(&mp);
     uint32_t minutes = seconds / 60;
@@ -934,28 +937,21 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     uint8_t timestampHours, timestampMinutes;
     int32_t daysAgo;
     bool useTimestamp = deltaToTimestamp(seconds, &timestampHours, &timestampMinutes, &daysAgo);
-
-    // If bold, draw twice, shifting right by one pixel
-    for (uint8_t xOff = 0; xOff <= (config.display.heading_bold ? 1 : 0); xOff++) {
-        // Show a timestamp if received today, but longer than 15 minutes ago
-        if (useTimestamp && minutes >= 15 && daysAgo == 0) {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "At %02hu:%02hu from %s", timestampHours, timestampMinutes,
-                                 (node && node->has_user) ? node->user.short_name : "???");
-        }
-        // Timestamp yesterday (if display is wide enough)
-        else if (useTimestamp && daysAgo == 1 && display->width() >= 200) {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "Yesterday %02hu:%02hu from %s", timestampHours, timestampMinutes,
-                                 (node && node->has_user) ? node->user.short_name : "???");
-        }
-        // Otherwise, show a time delta
-        else {
-            display->drawStringf(xOff + x, 0 + y, tempBuf, "%s ago from %s",
-                                 screen->drawTimeDelta(days, hours, minutes, seconds).c_str(),
-                                 (node && node->has_user) ? node->user.short_name : "???");
-        }
+    display->drawString(x + CENTER, y + sLINE(2), (node && node->has_user) ? node->user.short_name : "???");
+    display->drawString(x + CENTER + 1, y + sLINE(2), (node && node->has_user) ? node->user.short_name : "???");
+    // Show a timestamp if received today, but longer than 15 minutes ago
+    if (useTimestamp && minutes >= 15 && daysAgo == 0) {
+        display->drawStringf(x + CENTER, y + sLINE(3), tempBuf, "At %02hu:%02hu", timestampHours, timestampMinutes);
     }
-
-    display->setColor(WHITE);
+    // Timestamp yesterday (if display is wide enough)
+    else if (useTimestamp && daysAgo == 1 && display->width() >= 200) {
+        display->drawStringf(x + CENTER, y + sLINE(3), tempBuf, "Yesterday %02hu:%02hu", timestampHours, timestampMinutes);
+    }
+    // Otherwise, show a time delta
+    else {
+        display->drawStringf(x + CENTER, y + sLINE(3), tempBuf, "%s ago",
+                                screen->drawTimeDelta(days, hours, minutes, seconds).c_str());
+    }
 #ifndef EXCLUDE_EMOJI
     const char *msg = reinterpret_cast<const char *>(mp.decoded.payload.bytes);
     if (strcmp(msg, "\U0001F44D") == 0) {
@@ -1020,11 +1016,11 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - heart_height) / 2 + 2 + 5, heart_width, heart_height, heart);
     } else {
         snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
-        display->drawStringMaxWidth(0 + x, 0 + y + FONT_HEIGHT_SMALL, x + display->getWidth(), tempBuf);
+        display->drawStringMaxWidth(x + CENTER, y + CENTER - sLINE(1), x + display->getWidth(), tempBuf);
     }
 #else
     snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
-    display->drawStringMaxWidth(0 + x, 0 + y + FONT_HEIGHT_SMALL, x + display->getWidth(), tempBuf);
+    display->drawStringMaxWidth(x + CENTER, y + CENTER - sLINE(1), x + display->getWidth(), tempBuf);
 #endif
 }
 
@@ -1032,7 +1028,7 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
 void Screen::drawColumns(OLEDDisplay *display, int16_t x, int16_t y, const char **fields)
 {
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     const char **f = fields;
     int xo = x, yo = y;
@@ -1044,7 +1040,7 @@ void Screen::drawColumns(OLEDDisplay *display, int16_t x, int16_t y, const char 
         display->setColor(WHITE);
         yo += FONT_HEIGHT_SMALL;
         if (yo > SCREEN_HEIGHT - FONT_HEIGHT_SMALL) {
-            xo += SCREEN_WIDTH / 2;
+            xo += CENTER;
             yo = 0;
         }
         f++;
@@ -1059,13 +1055,11 @@ static void drawNodes(OLEDDisplay *display, int16_t x, int16_t y, const NodeStat
 #if (defined(USE_EINK) || defined(ILI9341_DRIVER) || defined(ILI9342_DRIVER) || defined(ST7701_CS) || defined(ST7735_CS) ||      \
      defined(ST7789_CS) || defined(USE_ST7789) || defined(HX8357_CS)) &&                                                         \
     !defined(DISPLAY_FORCE_SMALL_FONTS)
-    display->drawFastImage(x, y + 3, 8, 8, imgUser);
+    display->drawFastImage(x + 8, y + sLINE(2) + 4, 8, 8, imgUser);
 #else
-    display->drawFastImage(x, y, 8, 8, imgUser);
+    display->drawFastImage(x + 8, y + sLINE(2) + 4, 8, 8, imgUser);
 #endif
-    display->drawString(x + 10, y - 2, usersString);
-    if (config.display.heading_bold)
-        display->drawString(x + 11, y - 2, usersString);
+    display->drawString(x + 12, y + sLINE(2), usersString);
 }
 #if HAS_GPS
 // Draw GPS status summary
@@ -1073,22 +1067,16 @@ static void drawGPS(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus 
 {
     if (config.position.fixed_position) {
         // GPS coordinates are currently fixed
-        display->drawString(x - 1, y - 2, "Fixed GPS");
-        if (config.display.heading_bold)
-            display->drawString(x, y - 2, "Fixed GPS");
+        display->drawString(x, y, "Fixed GPS");
         return;
     }
     if (!gps->getIsConnected()) {
-        display->drawString(x, y - 2, "No GPS");
-        if (config.display.heading_bold)
-            display->drawString(x + 1, y - 2, "No GPS");
+        display->drawString(x, y, "No GPS");
         return;
     }
-    display->drawFastImage(x, y, 6, 8, gps->getHasLock() ? imgPositionSolid : imgPositionEmpty);
+    display->drawFastImage(x - CENTER / 2 - 3, y, 6, 8, gps->getHasLock() ? imgPositionSolid : imgPositionEmpty);
     if (!gps->getHasLock()) {
-        display->drawString(x + 8, y - 2, "No sats");
-        if (config.display.heading_bold)
-            display->drawString(x + 9, y - 2, "No sats");
+        display->drawString(x, y, "No sats");
         return;
     } else {
         char satsString[3];
@@ -1101,17 +1089,15 @@ static void drawGPS(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus 
             else
                 bar[0] = 0b10000000;
             // bar[1] = bar[0];
-            display->drawFastImage(x + 9 + (i * 2), y, 2, 8, bar);
+            display->drawFastImage(x + CENTER / 2 - 1 + (i * 2), y, 2, 8, bar);
         }
 
         // Draw satellite image
-        display->drawFastImage(x + 24, y, 8, 8, imgSatellite);
+        display->drawFastImage(x - CENTER / 4 - 5, y, 8, 8, imgSatellite);
 
         // Draw the number of satellites
-        snprintf(satsString, sizeof(satsString), "%u", gps->getNumSatellites());
-        display->drawString(x + 34, y - 2, satsString);
-        if (config.display.heading_bold)
-            display->drawString(x + 35, y - 2, satsString);
+        snprintf(satsString, sizeof(satsString), "Sats: %u", gps->getNumSatellites());
+        display->drawString(x, y, satsString);
     }
 }
 
@@ -1119,33 +1105,29 @@ static void drawGPS(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus 
 static void drawGPSpowerstat(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
 {
     String displayLine;
-    int pos;
     if (y < FONT_HEIGHT_SMALL) { // Line 1: use short string
         displayLine = config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_NOT_PRESENT ? "No GPS" : "GPS off";
-        pos = SCREEN_WIDTH - display->getStringWidth(displayLine);
     } else {
-        displayLine = config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_NOT_PRESENT ? "GPS not present"
-                                                                                                       : "GPS is disabled";
-        pos = (SCREEN_WIDTH - display->getStringWidth(displayLine)) / 2;
+        displayLine = config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_NOT_PRESENT ? "GPS not present";
     }
-    display->drawString(x + pos, y, displayLine);
+    display->drawString(x, y, displayLine);
 }
 
 static void drawGPSAltitude(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
 {
     String displayLine = "";
     if (!gps->getIsConnected() && !config.position.fixed_position) {
-        // displayLine = "No GPS Module";
-        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+        displayLine = "No GPS Module";
+        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
     } else if (!gps->getHasLock() && !config.position.fixed_position) {
-        // displayLine = "No GPS Lock";
-        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+        displayLine = "No GPS Lock";
+        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
     } else {
         geoCoord.updateCoords(int32_t(gps->getLatitude()), int32_t(gps->getLongitude()), int32_t(gps->getAltitude()));
         displayLine = "Altitude: " + String(geoCoord.getAltitude()) + "m";
         if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL)
             displayLine = "Altitude: " + String(geoCoord.getAltitude() * METERS_TO_FEET) + "ft";
-        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+        display->drawString(x, y, displayLine);
     }
 }
 
@@ -1204,8 +1186,8 @@ static void drawGPScoordinates(OLEDDisplay *display, int16_t x, int16_t y, const
                      geoCoord.getDMSLatSec(), geoCoord.getDMSLatCP());
             snprintf(lonLine, sizeof(lonLine), "%3i° %2i' %2u\" %1c", geoCoord.getDMSLonDeg(), geoCoord.getDMSLonMin(),
                      geoCoord.getDMSLonSec(), geoCoord.getDMSLonCP());
-            display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(latLine))) / 2, y - FONT_HEIGHT_SMALL * 1, latLine);
-            display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(lonLine))) / 2, y, lonLine);
+            display->drawString(x - display->getStringWidth(lonLine) / 2 - 4, y, latLine);
+            display->drawString(x + display->getStringWidth(latLine) / 2 + 4, y, lonLine);
         }
     }
 }
@@ -1218,6 +1200,7 @@ static void drawGPScoordinates(OLEDDisplay *display, int16_t x, int16_t y, const
  */
 float Screen::estimatedHeading(double lat, double lon)
 {
+    return magnotometerStatus->getHeading() * PI / 180;
     static double oldLat, oldLon;
     static float b;
 
@@ -1378,7 +1361,7 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
         display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
@@ -1412,7 +1395,7 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     // coordinates for the center of the compass/circle
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT) {
         compassX = x + SCREEN_WIDTH - compassDiam / 2 - 5;
-        compassY = y + SCREEN_HEIGHT / 2;
+        compassY = y + CENTER;
     } else {
         compassX = x + SCREEN_WIDTH - compassDiam / 2 - 5;
         compassY = y + FONT_HEIGHT_SMALL + (SCREEN_HEIGHT - FONT_HEIGHT_SMALL) / 2;
@@ -2358,12 +2341,12 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
-    if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
-        display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
-        display->setColor(BLACK);
-    }
+    // if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
+    //     display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
+    //     display->setColor(BLACK);
+    // }
 
     char channelStr[20];
     {
@@ -2374,38 +2357,40 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     // Display power status
     if (powerStatus->getHasBattery()) {
         if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT) {
-            drawBattery(display, x, y + 2, imgBattery, powerStatus);
+            drawBattery(display, x + CENTER, y, imgBattery, powerStatus);
         } else {
-            drawBattery(display, x + 1, y + 3, imgBattery, powerStatus);
+            drawBattery(display, x + CENTER, y, imgBattery, powerStatus);
         }
     } else if (powerStatus->knowsUSB()) {
         if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT) {
-            display->drawFastImage(x, y + 2, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
+            display->drawFastImage(x + CENTER - 8, y + 4, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
         } else {
-            display->drawFastImage(x + 1, y + 3, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
+            display->drawFastImage(x + CENTER - 8, y + 4, 16, 8, powerStatus->getHasUSB() ? imgUSB : imgPower);
         }
     }
     // Display nodes status
     if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT) {
-        drawNodes(display, x + (SCREEN_WIDTH * 0.25), y + 2, nodeStatus);
+        drawNodes(display, x + CENTER, y + FONT_HEIGHT_MEDIUM * 1, nodeStatus);
     } else {
-        drawNodes(display, x + (SCREEN_WIDTH * 0.25), y + 3, nodeStatus);
+        drawNodes(display, x + CENTER, y  + FONT_HEIGHT_MEDIUM * 1, nodeStatus);
     }
 #if HAS_GPS
+    display->drawString(x + CENTER, y + sLINE(4), "Position");
+    display->drawString(x + CENTER + 1, y + sLINE(4), "Position");
     // Display GPS status
     if (config.position.gps_mode != meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
-        drawGPSpowerstat(display, x, y + 2, gpsStatus);
+        drawGPSpowerstat(display, x + CENTER, y + sLINE(5), gpsStatus);
     } else {
         if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_DEFAULT) {
-            drawGPS(display, x + (SCREEN_WIDTH * 0.63), y + 2, gpsStatus);
+            drawGPS(display, x + CENTER, y + sLINE(5), gpsStatus);
         } else {
-            drawGPS(display, x + (SCREEN_WIDTH * 0.63), y + 3, gpsStatus);
+            drawGPS(display, x + CENTER, y + sLINE(5), gpsStatus);
         }
     }
 #endif
-    display->setColor(WHITE);
+    // display->setColor(WHITE);
     // Draw the channel name
-    display->drawString(x, y + FONT_HEIGHT_SMALL, channelStr);
+    display->drawString(x + CENTER + CENTER / 4, y + sLINE(2), channelStr);
     // Draw our hardware ID to assist with bluetooth pairing. Either prefix with Info or S&F Logo
     if (moduleConfig.store_forward.enabled) {
 #ifdef ARCH_ESP32
@@ -2450,10 +2435,10 @@ void DebugInfo::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 #endif
     }
 
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(ourId), y + FONT_HEIGHT_SMALL, ourId);
+    display->drawString(x + CENTER, y + sLINE(1), ourId);
 
     // Draw any log messages
-    display->drawLogBuffer(x, y + (FONT_HEIGHT_SMALL * 2));
+    display->drawLogBuffer(x + CENTER, y + CENTER);
 
     /* Display a heartbeat pixel that blinks every time the frame is redrawn */
 #ifdef SHOW_REDRAWS
@@ -2469,35 +2454,21 @@ void DebugInfo::drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, i
 #if HAS_WIFI && !defined(ARCH_PORTDUINO)
     const char *wifiName = config.network.wifi_ssid;
 
+    display->setFont(FONT_MEDIUM);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->drawString(x + CENTER, y + sLINE(1), String("WiFi"));
+    display->drawString(x + CENTER + 1, y + sLINE(1), String("WiFi"));
     display->setFont(FONT_SMALL);
-
-    // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
-        display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
-        display->setColor(BLACK);
-    }
-
     if (WiFi.status() != WL_CONNECTED) {
-        display->drawString(x, y, String("WiFi: Not Connected"));
-        if (config.display.heading_bold)
-            display->drawString(x + 1, y, String("WiFi: Not Connected"));
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(1), String("Not Connected"));
+        display->drawString(x + CENTER + 1, y + mLINE(1) + sLINE(1), String("Not Connected"));
     } else {
-        display->drawString(x, y, String("WiFi: Connected"));
-        if (config.display.heading_bold)
-            display->drawString(x + 1, y, String("WiFi: Connected"));
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(1), String("Connected"));
+        display->drawString(x + CENTER + 1, y + mLINE(1) + sLINE(1), String("Connected"));
 
-        display->drawString(x + SCREEN_WIDTH - display->getStringWidth("RSSI " + String(WiFi.RSSI())), y,
-                            "RSSI " + String(WiFi.RSSI()));
-        if (config.display.heading_bold) {
-            display->drawString(x + SCREEN_WIDTH - display->getStringWidth("RSSI " + String(WiFi.RSSI())) - 1, y,
-                                "RSSI " + String(WiFi.RSSI()));
-        }
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(2),
+                            "RSSI: " + String(WiFi.RSSI()));
     }
-
-    display->setColor(WHITE);
-
     /*
     - WL_CONNECTED: assigned when connected to a WiFi network;
     - WL_NO_SSID_AVAIL: assigned when no SSID are available;
@@ -2511,21 +2482,21 @@ void DebugInfo::drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, i
 
     */
     if (WiFi.status() == WL_CONNECTED) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "IP: " + String(WiFi.localIP().toString().c_str()));
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3), "IP: " + String(WiFi.localIP().toString().c_str()));
     } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "SSID Not Found");
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3), "SSID Not Found");
     } else if (WiFi.status() == WL_CONNECTION_LOST) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Connection Lost");
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3), "Connection Lost");
     } else if (WiFi.status() == WL_CONNECT_FAILED) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Connection Failed");
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3), "Connection Failed");
     } else if (WiFi.status() == WL_IDLE_STATUS) {
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1, "Idle ... Reconnecting");
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3), "Idle ... Reconnecting");
     }
 #ifdef ARCH_ESP32
     else {
         // Codes:
         // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-reason-code
-        display->drawString(x, y + FONT_HEIGHT_SMALL * 1,
+        display->drawString(x + CENTER, y + mLINE(1) + sLINE(3),
                             WiFi.disconnectReasonName(static_cast<wifi_err_reason_t>(getWifiDisconnectReason())));
     }
 #else
@@ -2534,9 +2505,10 @@ void DebugInfo::drawFrameWiFi(OLEDDisplay *display, OLEDDisplayUiState *state, i
     }
 #endif
 
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 2, "SSID: " + String(wifiName));
+    display->drawString(x + CENTER, y + mLINE(1) + sLINE(4), "SSID: " + String(wifiName));
 
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 3, "http://meshtastic.local");
+    display->drawString(x + CENTER, y + mLINE(1) + sLINE(5), "http://meshtastic.local");
+    display->drawString(x + CENTER + 1, y + mLINE(1) + sLINE(5), "http://meshtastic.local");
 
     /* Display a heartbeat pixel that blinks every time the frame is redrawn */
 #ifdef SHOW_REDRAWS
@@ -2552,38 +2524,28 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     display->setFont(FONT_SMALL);
 
     // The coordinates define the left starting point of the text
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
-    if (config.display.displaymode == meshtastic_Config_DisplayConfig_DisplayMode_INVERTED) {
-        display->fillRect(0 + x, 0 + y, x + display->getWidth(), y + FONT_HEIGHT_SMALL);
-        display->setColor(BLACK);
-    }
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
 
     char batStr[20];
+    display->drawString(x + CENTER, y + sLINE(1), "Power");
+    display->drawString(x + CENTER + 1, y + sLINE(1), "Power");
     if (powerStatus->getHasBattery()) {
         int batV = powerStatus->getBatteryVoltageMv() / 1000;
         int batCv = (powerStatus->getBatteryVoltageMv() % 1000) / 10;
 
-        snprintf(batStr, sizeof(batStr), "B %01d.%02dV %3d%% %c%c", batV, batCv, powerStatus->getBatteryChargePercent(),
+        snprintf(batStr, sizeof(batStr), "%01d.%02dV %3d%% %c%c", batV, batCv, powerStatus->getBatteryChargePercent(),
                  powerStatus->getIsCharging() ? '+' : ' ', powerStatus->getHasUSB() ? 'U' : ' ');
-
-        // Line 1
-        display->drawString(x, y, batStr);
-        if (config.display.heading_bold)
-            display->drawString(x + 1, y, batStr);
+        
+        display->drawString(x + CENTER, y + sLINE(2), batStr);
     } else {
         // Line 1
-        display->drawString(x, y, String("USB"));
-        if (config.display.heading_bold)
-            display->drawString(x + 1, y, String("USB"));
+        display->drawString(x + CENTER, y + sLINE(2), String("USB"));
     }
-
+    display->drawString(x + CENTER, y + sLINE(3), "Radio");
+    display->drawString(x + CENTER + 1, y + sLINE(3), "Radio");
     auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, true);
 
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode), y, mode);
-    if (config.display.heading_bold)
-        display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode) - 1, y, mode);
-
+    display->drawString(x + CENTER - CENTER / 2, y + sLINE(4), mode);
     // Line 2
     uint32_t currentMillis = millis();
     uint32_t seconds = currentMillis / 1000;
@@ -2594,8 +2556,6 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     // seconds %= 60;
     // minutes %= 60;
     // hours %= 24;
-
-    display->setColor(WHITE);
 
     // Show uptime as days, hours, minutes OR seconds
     std::string uptime = screen->drawTimeDelta(days, hours, minutes, seconds);
@@ -2618,25 +2578,30 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
         uptime += timebuf;
     }
 
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 1, uptime.c_str());
-
+    
     // Display Channel Utilization
     char chUtil[13];
     snprintf(chUtil, sizeof(chUtil), "ChUtil %2.0f%%", airTime->channelUtilizationPercent());
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(chUtil), y + FONT_HEIGHT_SMALL * 1, chUtil);
+    display->drawString(x + CENTER + CENTER / 2, y + sLINE(4), chUtil);
 #if HAS_GPS
+    display->drawString(x + CENTER, y + sLINE(3), "Radio");
+    display->drawString(x + CENTER + 1, y + sLINE(3), "Radio");
+    
     if (config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
         // Line 3
         if (config.display.gps_format !=
             meshtastic_Config_DisplayConfig_GpsCoordinateFormat_DMS) // if DMS then don't draw altitude
-            drawGPSAltitude(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
+            drawGPSAltitude(display, x + CENTER, y + FONT_HEIGHT_SMALL * 6, gpsStatus);
 
         // Line 4
-        drawGPScoordinates(display, x, y + FONT_HEIGHT_SMALL * 3, gpsStatus);
+        drawGPScoordinates(display, x + CENTER, y + FONT_HEIGHT_SMALL * 7, gpsStatus);
     } else {
-        drawGPSpowerstat(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
+        drawGPSpowerstat(display, x, y + FONT_HEIGHT_SMALL * 6, gpsStatus);
     }
 #endif
+
+    display->drawString(x + CENTER, y + FONT_HEIGHT_SMALL * 4, uptime.c_str());
+
     /* Display a heartbeat pixel that blinks every time the frame is redrawn */
 #ifdef SHOW_REDRAWS
     if (heartbeat)

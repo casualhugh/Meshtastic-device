@@ -35,7 +35,7 @@ template <typename T, std::size_t N> std::size_t array_count(const T (&)[N])
 }
 
 #if defined(NRF52840_XXAA) || defined(NRF52833_XXAA) || defined(ARCH_ESP32) || defined(ARCH_PORTDUINO)
-HardwareSerial *GPS::_serial_gps = &Serial1;
+HardwareSerial *GPS::_serial_gps = &Serial2;
 #elif defined(ARCH_RP2040)
 SerialUART *GPS::_serial_gps = &Serial1;
 #else
@@ -1177,6 +1177,9 @@ GnssModel_t GPS::probe(int serialSpeed)
     _serial_gps->write("$PAIR062,2,0*3C\r\n"); // GSA OFF to reduce volume
     _serial_gps->write("$PAIR062,3,0*3D\r\n"); // GSV OFF to reduce volume
     _serial_gps->write("$PAIR513*3D\r\n");     // save configuration
+    // Added a probe for the L76L which is just the newer version of the L76B
+    PROBE_SIMPLE("L76L", "$PMTK605*31", "Quectel-L76L", GNSS_MODEL_MTK_L76B, 500);
+    
     PROBE_SIMPLE("AG3335", "$PAIR021*39", "$PAIR021,AG3335", GNSS_MODEL_AG3335, 500);
     PROBE_SIMPLE("AG3352", "$PAIR021*39", "$PAIR021,AG3352", GNSS_MODEL_AG3352, 500);
     PROBE_SIMPLE("LC86", "$PQTMVERNO*58", "$PQTMVERNO,LC86", GNSS_MODEL_AG3352, 500);
@@ -1285,6 +1288,14 @@ GnssModel_t GPS::probe(int serialSpeed)
     return GNSS_MODEL_UNKNOWN;
 }
 
+int calculateChecksum(const char* sentence) {
+  int checksum = 0;
+  for (int i = 1; sentence[i] != '\0'; i++) {
+    checksum ^= sentence[i];
+  }
+  return checksum;
+}
+
 GPS *GPS::createGps()
 {
     int8_t _rx_gpio = config.position.rx_gpio;
@@ -1368,6 +1379,15 @@ GPS *GPS::createGps()
         LOG_DEBUG("Use GPIO%d for GPS RX", new_gps->rx_gpio);
         LOG_DEBUG("Use GPIO%d for GPS TX", new_gps->tx_gpio);
         _serial_gps->begin(GPS_BAUDRATE, SERIAL_8N1, new_gps->rx_gpio, new_gps->tx_gpio);
+        // Send the PMTK353 command to enable all satellite systems
+        // Todo(hugh): Test this with probing?
+        // _serial_gps->print("$PMTK353,1,1,1,0,1*"); // Enable GPS, GLONASS, Galileo, BDS
+        // int checksum = calculateChecksum("$PMTK353,1,1,1,0,1");
+        // if (checksum < 16) {
+        //     _serial_gps->print("0");
+        // }
+        // _serial_gps->println(checksum, HEX);
+
 #elif defined(ARCH_RP2040)
         _serial_gps->setFIFOSize(256);
         _serial_gps->begin(GPS_BAUDRATE);
@@ -1430,6 +1450,7 @@ bool GPS::factoryReset()
         delay(100);
     } else {
         // fire this for good measure, if we have an L76B - won't harm other devices.
+        // Cold reset on L76
         _serial_gps->write("$PMTK104*37\r\n");
         // No PMTK_ACK for this command.
         delay(100);

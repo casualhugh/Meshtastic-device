@@ -5,12 +5,11 @@
 #include "../mesh/generated/meshtastic/telemetry.pb.h"
 #include "TelemetrySensor.h"
 #include "VoltageSensor.h"
-#include <Adafruit_INA219.h>
-
+#include <INA226_WE.h>
 class INA219Sensor : public TelemetrySensor, VoltageSensor
 {
   private:
-    Adafruit_INA219 ina219;
+    INA226_WE ina226;
 
   protected:
     virtual void setup() override;
